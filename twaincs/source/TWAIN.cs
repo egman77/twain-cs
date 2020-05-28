@@ -6,6 +6,10 @@
 //  behavior that every application should adhere to.  It also hides OS
 //  specific details, so that toolkits or applications can use one unified
 //  interface to TWAIN.
+//  这是一个基本TWAIN功能的包装类。它建立了
+//  每个应用程序都应该遵循的行为。它还隐藏操作系统
+//  具体细节，使工具包或应用程序可以统一使用
+//  TWAIN接口。
 //
 ///////////////////////////////////////////////////////////////////////////////////////
 //  Author          Date            TWAIN       Comment
@@ -58,64 +62,82 @@ namespace TWAINWorkingGroup
     /// safely make a reference to it, if they don't want to actually include
     /// the TWAIN modules in their project.
     /// 
+    /// 这是base TWAIN类。如果开发人员不希望在其项目中实际包含TWAIN模块，则可以对其进行版本控制，以便安全地对其进行引用。
+    /// 
     /// Here are the goals of this class:
+    /// 本类的目标如下:
     ///
     /// - Make the interface better than raw TWAIN (like with C/C++), but don't
     ///   go as far as making a toolkit.  Expose as much of TWAIN as possible.
     ///   Part of this involves making a CSV interface to abstract away some of
     ///   the pain of the C/C++ structures, especially TW_CAPABILITY.
     ///   
+    /// 使界面比原始的TWAIN更好(就像C/ c++)，但不要过分到制作工具包的程度。尽可能多地暴露TWAIN。
+    /// 这部分涉及到创建一个CSV接口来抽象出一些C/ c++结构的痛苦，特别是TW_CAPABILITY
+    ///   
     /// - Use type checking wherever possible.  This is why the TWAIN contants
     ///   tend to be enumerations and why there are multiple entry points into
     ///   the DSM_Entry function.
     ///   
+    /// 尽可能使用类型检查。这就是为什么TWAIN主张使用枚举，以及为什么DSM_Entry函数有多个入口点的原因。
+    ///   
     /// - Avoid unsafe code.  We use marshalling, and we're forced to use some
     ///   unmanaged memory, but that's it.
+    ///   避免不安全的代码。我们使用编组(marshalling)，我们被迫使用一些非托管内存，但仅此而已。
     ///   
     /// - Run thread safe.  Force as many TWAIN calls into a single thread as
     ///   possible.  The main exceptions are MSG_PROCESSEVENT and any of the
     ///   calls that unwind the state machine (ex: MSG_DISABLEDS).  Otherwise
     ///   all of the calls are serialized through a single thread.
     ///   
+    /// 线程安全的运行。把尽可能多的TWAIN调用为单线程。主要的例外是MSG_PROCESSEVENT和展开状态机的任何调用(例如:MSG_DISABLEDS)。
+    /// 否则，所有调用都将通过单个线程序列化。
+    ///   
     /// - Avoid use of System.Windows content, so that the TWAIN assembly can be
     ///   used as broadly as possible (specifically with Mono).
-    ///   
+    /// 避免使用 System.Windows内容，以便可以尽可能广泛地使用TWAIN程序集(特别是使用Mono)。  
+    /// 
     /// - Support all platforms.  The code currently works on 32-bit and 64-bit
     ///   Windows.  It's been tested on 32-bit Linux and Mac OS X (using Mono).
     ///   It should work as 64-bit on those platforms.  We're also supporting
     ///   both TWAIN_32.DLL and TWAINDSM.DLL on Windows, and we'll support both
     ///   TWAIN.framework and a TWAINDSM.framework (whenever it gets created).
+    ///   支持所有平台。该代码目前适用于32位和64位Windows。它已经在32位Linux和Mac OS X(使用Mono)上进行了测试。
+    ///   它应该在64位平台上工作。
+    ///   我们还在Windows上同时支持TWAIN_32.DLL和TWAINDSM.DLL，并且我们将同时支持twain32 .framework和TWAINDSM.framework(无论何时创建)。
     ///   
     /// - Virtualiaze all public functions so that developers can extended the
     ///   class with a minimum of fuss.
+    ///   虚拟化所有的公共函数，这样开发人员就可以扩展类而不需要太多麻烦。
     /// </summary>
     public partial class TWAIN : IDisposable
     {
         ///////////////////////////////////////////////////////////////////////////////
         // Public Functions, these are the essentials...
+        // 公共功能，这些是基本的…
         ///////////////////////////////////////////////////////////////////////////////
         #region Public Functions...
 
         /// <summary>
         /// Our constructor...
         /// </summary>
-        /// <param name="a_szManufacturer">Application manufacturer</param>
-        /// <param name="a_szProductFamily">Application product family</param>
-        /// <param name="a_szProductName">Name of the application</param>
-        /// <param name="a_u16ProtocolMajor">TWAIN protocol major (doesn't have to match TWAINH.CS)</param>
-        /// <param name="a_u16ProtocolMinor">TWAIN protocol minor (doesn't have to match TWAINH.CS)</param>
-        /// <param name="a_u32SupportedGroups">Bitmask of DG_ flags</param>
-        /// <param name="a_twcy">Country code for the application</param>
-        /// <param name="a_szInfo">Info about the application</param>
-        /// <param name="a_twlg">Language code for the application</param>
-        /// <param name="a_u16MajorNum">Application's major version</param>
-        /// <param name="a_u16MinorNum">Application's minor version</param>
-        /// <param name="a_blUseLegacyDSM">Use the legacy DSM (like TWAIN_32.DLL)</param>
-        /// <param name="a_blUseCallbacks">Use callbacks instead of Windows post message</param>
-        /// <param name="a_deviceeventback">Function to receive device events</param>
-        /// <param name="a_scancallback">Function to handle scanning</param>
-        /// <param name="a_runinuithreaddelegate">Help us run in the GUI thread on Windows</param>
-        /// <param name="a_intptrHwnd">window handle</param>
+        /// <param name="a_szManufacturer">Application manufacturer 应用程序制造商</param>
+        /// <param name="a_szProductFamily">Application product family 应用程序产品系列</param>
+        /// <param name="a_szProductName">Name of the application 应用程序名</param>
+        /// <param name="a_u16ProtocolMajor">TWAIN protocol major (doesn't have to match TWAINH.CS) TWAIN 主协议(不需要匹配TWAINH.CS文件)</param>
+        /// <param name="a_u16ProtocolMinor">TWAIN protocol minor (doesn't have to match TWAINH.CS) TWAIN 次协议(不需要匹配TWAINH.CS文件)</param>
+        /// <param name="a_u32SupportedGroups">Bitmask of DG_ flags DG_标志的位掩码</param>
+        /// <param name="a_twcy">Country code for the application 应用程序的国家代码</param>
+        /// <param name="a_szInfo">Info about the application 关于应用程序的信息</param>
+        /// <param name="a_twlg">Language code for the application 应用程序的语言代码</param>
+        /// <param name="a_u16MajorNum">Application's major version 应用程序的主版本</param>
+        /// <param name="a_u16MinorNum">Application's minor version 应用程序的次版本</param>
+        /// <param name="a_blUseLegacyDSM">Use the legacy DSM (like TWAIN_32.DLL) 使用旧的DSM(如TWAIN_32.DLL)</param>
+        /// <param name="a_blUseCallbacks">Use callbacks instead of Windows post message 使用回调而不是Windows post消息</param>
+        /// <param name="a_deviceeventback">Function to receive device events 函数来接收设备事件</param>
+        /// <param name="a_scancallback">Function to handle scanning 处理扫描的功能</param>
+        /// <param name="a_runinuithreaddelegate">Help us run in the GUI thread on Windows 帮助我们在Windows上运行GUI线程</param>
+        /// <param name="a_intptrHwnd">window handle 窗口句柄</param>
         [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust", Unrestricted = false)]
         public TWAIN
         (
@@ -143,9 +165,11 @@ namespace TWAINWorkingGroup
             // Since we're using P/Invoke in this sample, the DLL
             // is implicitly loaded as we access it, so we can
             // never go lower than state 2...
+            //因为我们在这个例子中使用了P/Invoke，当我们访问它时，DLL是隐式加载的，所以我们永远不能低于状态2…
             m_state = STATE.S2;
 
             // Register the caller's info...
+            //注册调用者的信息...
             twidentity = default(TW_IDENTITY);
             twidentity.Manufacturer.Set(a_szManufacturer);
             twidentity.ProductFamily.Set(a_szProductFamily);
@@ -167,6 +191,7 @@ namespace TWAINWorkingGroup
             m_intptrHwnd = a_intptrHwnd;
 
             // Help for RunInUiThread...
+            //RunInUiThread(运行在Ui线程)的帮助
             m_threaddataDatAudiofilexfer = default(ThreadData);
             m_threaddataDatAudionativexfer = default(ThreadData);
             m_threaddataDatCapability = default(ThreadData);
@@ -187,21 +212,26 @@ namespace TWAINWorkingGroup
             m_threaddataDatUserinterface = default(ThreadData);
 
             // We always go through a discovery process, even on 32-bit...
+            //我们总是要经历一个发现过程，即使是在32位上……
             m_linuxdsm = LinuxDsm.Unknown;
 
             // Placeholder for our DS identity...
+            //我们的DS标识的占位符…
             m_twidentityDs = default(TW_IDENTITY);
             m_twidentitylegacyDs = default(TW_IDENTITY_LEGACY);
             m_twidentitymacosxDs = default(TW_IDENTITY_MACOSX);
 
             // We'll normally do an automatic get of DAT.STATUS, but if we'd
             // like to turn it off, this is the variable to hit...
+            //我们通常采用自动获取DAT.状态，但如果我们想要关闭它，这是要点击的变量…
             m_blAutoDatStatus = true;
 
             // Our helper functions from the DSM...
+            //我们的辅助功能来自DSM…
             m_twentrypointdelegates = default(TW_ENTRYPOINT_DELEGATES);
 
             // Our events...
+            //我们的事件...
             m_autoreseteventCaller = new AutoResetEvent(false);
             m_autoreseteventThread = new AutoResetEvent(false);
             m_autoreseteventRollback = new AutoResetEvent(false);
@@ -209,6 +239,7 @@ namespace TWAINWorkingGroup
             m_lockTwain = new Object();
 
             // Windows only...
+            //当是Windows平台时...
             if (ms_platform == Platform.WINDOWS)
             {
                 m_blUseLegacyDSM = a_blUseLegacyDSM;
@@ -217,15 +248,18 @@ namespace TWAINWorkingGroup
             }
 
             // Linux only...
+            //当是Linux平台时...
             else if (ms_platform == Platform.LINUX)
             {
                 // The user can't set these value, we have to decide automatically
                 // which DSM to use, and only callbacks are supported...
+                //用户无法设置这些值，我们必须自动决定使用哪个DSM，并且只支持回调……
                 m_blUseLegacyDSM = false;
                 m_blUseCallbacks = true;
                 m_linuxdsmentrycontrolcallbackdelegate = LinuxDsmEntryCallbackProxy;
 
                 // We assume the new DSM for 32-bit systems...
+                //我们假设32位系统的新DSM…
                 if (GetMachineWordBitSize() == 32)
                 {
                     m_blFound020302Dsm64bit = false;
@@ -240,17 +274,20 @@ namespace TWAINWorkingGroup
                 }
 
                 // Check for the old DSM, but only on 64-bit systems...
+                //检查旧的DSM，但是只在64位系统上…
                 if ((GetMachineWordBitSize() == 64) && File.Exists("/usr/local/lib/libtwaindsm.so.2.3.2"))
                 {
                     m_blFound020302Dsm64bit = true;
                 }
 
                 // Check for any newer DSM, but only on 64-bit systems...
+                //检查任何更新的DSM，但是只在64位系统上…
                 if ((GetMachineWordBitSize() == 64) && (File.Exists("/usr/local/lib/libtwaindsm.so") || File.Exists("/usr/local/lib64/libtwaindsm.so")))
                 {
                     bool blCheckForNewDsm = true;
 
                     // Get the DSMs by their fully decorated names...
+                    //通过完全修饰过的名字获得DSMs…
                     string[] aszDsm = Directory.GetFiles("/usr/local/lib64", "libtwaindsm.so.*.*.*");
                     if (aszDsm.Length == 0)
                     {
@@ -260,6 +297,7 @@ namespace TWAINWorkingGroup
                     {
                         // Check each name, we only want to launch the process if
                         // we find an old DSM...
+                        //检查每一个名字，我们只想启动过程，如果我们找到一个旧的DSM…
                         foreach (string szDsm in aszDsm)
                         {
                             if (    szDsm.EndsWith("so.2.0") || szDsm.Contains(".so.2.0.")
@@ -269,6 +307,7 @@ namespace TWAINWorkingGroup
                             {
                                 // If we get a match, see if the symbolic link is
                                 // pointing to old junk...
+                                //如果我们得到一个匹配，看看符号链接是否指向旧垃圾…
                                 Process p = new Process();
                                 p.StartInfo.UseShellExecute = false;
                                 p.StartInfo.RedirectStandardOutput = true;
@@ -279,6 +318,7 @@ namespace TWAINWorkingGroup
                                 p.WaitForExit();
                                 p.Dispose();
                                 // We never did any 1.x stuff...
+                                //我们从来没有做过1.x的东西...
                                 if (    (szOutput != null)
                                     &&  (szOutput.EndsWith(".so.2.0") || szOutput.Contains(".so.2.0.")
                                     ||   szOutput.EndsWith(".so.2.1") || szOutput.Contains(".so.2.1.")
@@ -286,6 +326,7 @@ namespace TWAINWorkingGroup
                                     ||   szOutput.EndsWith(".so.2.3") || szOutput.Contains(".so.2.3.")))
                                 {
                                     // libtwaindsm.so is pointing to an old DSM...
+                                    //libtwaindsm.so是指向旧的DSM…
                                     blCheckForNewDsm = false;
                                 }
                                 break;
@@ -294,11 +335,13 @@ namespace TWAINWorkingGroup
                     }
 
                     // Is the symbolic link pointing to a new DSM?
+                    //这个象征性的链接指向新的DSM吗?
                     if (blCheckForNewDsm && (aszDsm != null) && (aszDsm.Length > 0))
                     {
                         foreach (string szDsm in aszDsm)
                         {
                             // I guess this is reasonably future-proof...
+                            //我想这是合理的未来证明…
                             if (    szDsm.Contains("so.2.4")
                                 ||  szDsm.Contains("so.2.5")
                                 ||  szDsm.Contains("so.2.6")
@@ -314,6 +357,7 @@ namespace TWAINWorkingGroup
                                 ||  szDsm.Contains("so.4"))
                             {
                                 // libtwaindsm.so is pointing to a new DSM...
+                                //这个象征性的链接指向新的DSM吗?
                                 if (szDsm.Contains("lib64"))
                                 {
                                     m_blFoundLatestDsm64 = true;
@@ -330,6 +374,7 @@ namespace TWAINWorkingGroup
             }
 
             // Mac OS X only...
+            //当是OSX平台时...
             else if (ms_platform == Platform.MACOSX)
             {
                 m_blUseLegacyDSM = a_blUseLegacyDSM;
@@ -338,12 +383,14 @@ namespace TWAINWorkingGroup
             }
 
             // Uh-oh, Log will throw an exception for us...
+            //日志会给我们抛出一个异常…
             else
             {
                 TWAINWorkingGroup.Log.Assert("Unsupported platform..." + ms_platform);
             }
 
             // Activate our thread...
+            //激活我们的线程…
             /*
             if (m_threadTwain == null)
             {
@@ -369,6 +416,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Cleanup...
+        /// 清理…
         /// </summary>
         [SuppressMessage("Microsoft.Security", "CA2123:OverrideLinkDemandsShouldBeIdenticalToBase")]
         [SecurityPermissionAttribute(SecurityAction.LinkDemand, Flags = SecurityPermissionFlag.UnmanagedCode)]
@@ -380,8 +428,9 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Report the path to the DSM we're using...
+        /// 向我们正在使用的DSM报告路径…
         /// </summary>
-        /// <returns>full path to the DSM</returns>
+        /// <returns>full path to the DSM 通往DSM的完整道路</returns>
         public string GetDsmPath()
         {
             string szDsmPath = "";
@@ -417,6 +466,7 @@ namespace TWAINWorkingGroup
             }
 
             // Mac OS X, which has to be different...
+            //Mac OS X，必须与众不同……
             else if (ms_platform == Platform.MACOSX)
             {
                 if (m_blUseLegacyDSM)
@@ -430,12 +480,14 @@ namespace TWAINWorkingGroup
             }
 
             // If found...
+            //如果发现...
             if (File.Exists(szDsmPath))
             {
                 return (szDsmPath);
             }
 
             // Ruh-roh...
+            //卢武铉?
             if (string.IsNullOrEmpty(szDsmPath))
             {
                 return ("(could not identify a DSM candidate for this platform - '" + ms_platform + "')");
@@ -447,6 +499,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Get the identity of the current application...
+        /// 获取当前应用程序的标识…
         /// </summary>
         /// <returns></returns>
         public string GetAppIdentity()
@@ -456,6 +509,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Get the identity of the current driver, if we have one...
+        /// 获得当前驱动程序的身份，如果我们有一个…
         /// </summary>
         /// <returns></returns>
         public string GetDsIdentity()
@@ -469,15 +523,17 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Alloc memory used with the data source.
+        /// 分配与数据源一起使用的内存。
         /// </summary>
-        /// <param name="a_u32Size">Number of bytes to allocate</param>
-        /// <returns>Point to memory</returns>
+        /// <param name="a_u32Size">Number of bytes to allocate 要分配的字节数</param>
+        /// <returns>Point to memory 指向内存</returns>
         [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust", Unrestricted = false)]
         public IntPtr DsmMemAlloc(uint a_u32Size, bool a_blForcePointer = false)
         {
             IntPtr intptr;
 
             // Use the DSM...
+            //使用DSM……
             if ((m_twentrypointdelegates.DSM_MemAllocate != null) && !a_blForcePointer)
             {
                 intptr = m_twentrypointdelegates.DSM_MemAllocate(a_u32Size);
@@ -489,6 +545,7 @@ namespace TWAINWorkingGroup
             }
 
             // Do it ourselves, Windows...
+            //自己动手吧，Windows……
             if (ms_platform == Platform.WINDOWS)
             {
                 intptr = (IntPtr)NativeMethods.GlobalAlloc((uint)(a_blForcePointer ? 0x0040 /* GPTR */ : 0x0042 /* GHND */), (UIntPtr)a_u32Size);
@@ -500,6 +557,7 @@ namespace TWAINWorkingGroup
             }
 
             // Do it ourselves, Linux...
+            //我们自己做吧，Linux……
             if (ms_platform == Platform.LINUX)
             {
                 intptr = Marshal.AllocHGlobal((int)a_u32Size);
@@ -511,6 +569,7 @@ namespace TWAINWorkingGroup
             }
 
             // Do it ourselves, Mac OS X...
+            //我们自己做吧，Mac OS X……
             if (ms_platform == Platform.MACOSX)
             {
                 IntPtr intptrIndirect = Marshal.AllocHGlobal((int)a_u32Size);
@@ -530,24 +589,28 @@ namespace TWAINWorkingGroup
             }
 
             // Trouble, Log will throw an exception for us...
+            //麻烦，日志会给我们抛出一个异常…
             TWAINWorkingGroup.Log.Assert("Unsupported platform..." + ms_platform);
             return (IntPtr.Zero);
         }
 
         /// <summary>
         /// Free memory used with the data source...
+        /// 与数据源一起使用的空闲内存…
         /// </summary>
-        /// <param name="a_intptrHandle">Pointer to free</param>
+        /// <param name="a_intptrHandle">Pointer to free 指针指向自由</param>
         [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust", Unrestricted = false)]
         public void DsmMemFree(ref IntPtr a_intptrHandle, bool a_blForcePointer = false)
         {
             // Validate...
+            //验证……
             if (a_intptrHandle == IntPtr.Zero)
             {
                 return;
             }
 
             // Use the DSM...
+            //使用DSM……
             if ((m_twentrypointdelegates.DSM_MemAllocate != null) && !a_blForcePointer)
             {
                 m_twentrypointdelegates.DSM_MemFree(a_intptrHandle);
@@ -569,6 +632,7 @@ namespace TWAINWorkingGroup
             else if (ms_platform == Platform.MACOSX)
             {
                 // Free the indirect pointer...
+                //释放间接指针…
                 IntPtr intptr = (IntPtr)Marshal.PtrToStructure(a_intptrHandle, typeof(IntPtr));
                 if (intptr != IntPtr.Zero)
                 {
@@ -579,18 +643,21 @@ namespace TWAINWorkingGroup
                 // freeing something that was never allocated.  We're going
                 // to believe it and not do a free.  But I'm also leaving this
                 // here as a record of the decision...
+                //如果我们释放直接指针CLR会告诉我们，我们释放的是从未分配过的东西。我们要相信它，不要做一个免费的。但我也要把这个记录下来…
                 //Marshal.FreeHGlobal(a_twcapability.hContainer);
             }
 
             // Make sure the variable is cleared...
+            //确保变量被清除…
             a_intptrHandle = IntPtr.Zero;
         }
 
         /// <summary>
         /// Lock memory used with the data source...
+        /// 锁定与数据源一起使用的内存
         /// </summary>
-        /// <param name="a_intptrHandle">Handle to lock</param>
-        /// <returns>Locked pointer</returns>
+        /// <param name="a_intptrHandle">Handle to lock 句柄锁</param>
+        /// <returns>Locked pointer 锁着的指针</returns>
         [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust", Unrestricted = false)]
         public IntPtr DsmMemLock(IntPtr a_intptrHandle)
         {
@@ -632,8 +699,9 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Unlock memory used with the data source...
+        /// 解锁与数据源一起使用的内存…
         /// </summary>
-        /// <param name="a_intptrHandle">Handle to unlock</param>
+        /// <param name="a_intptrHandle">Handle to unlock 打开的句柄</param>
         [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust", Unrestricted = false)]
         public void DsmMemUnlock(IntPtr a_intptrHandle)
         {
@@ -675,8 +743,9 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Report the current TWAIN state as we understand it...
+        /// 按照我们的理解报告当前TWAIN的状态……
         /// </summary>
-        /// <returns>The current TWAIN state for the application</returns>
+        /// <returns>The current TWAIN state for the application 应用程序的当前TWAIN状态</returns>
         public STATE GetState()
         {
             return (m_state);
@@ -684,8 +753,9 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// True if the DSM has the DSM2 flag set...
+        /// 真,如果DSM设置了DSM2标志…
         /// </summary>
-        /// <returns>True if we detect the TWAIN Working Group open source DSM</returns>
+        /// <returns>True if we detect the TWAIN Working Group open source DSM 如果我们检测到TWAIN工作组的开源DSM，则为真</returns>
         public bool IsDsm2()
         {
             // Windows...
@@ -713,8 +783,9 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Have we seen the first image since MSG.ENABLEDS?
+        /// 我们看到了自MSG.ENABLEDS以来的第一张图片吗?
         /// </summary>
-        /// <returns>True if the driver is ready to transfer images</returns>
+        /// <returns>True if the driver is ready to transfer images 如果驱动程序准备传输图像，则为真</returns>
         public bool IsMsgXferReady()
         {
             return (m_blIsMsgxferready);
@@ -722,8 +793,9 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Has the cancel button been pressed since the last MSG.ENABLEDS?
+        /// 自上次MSG.ENABLEDS后，取消按钮是否已按下?
         /// </summary>
-        /// <returns>True if the cancel button was pressed</returns>
+        /// <returns>True if the cancel button was pressed 如果按下取消按钮，则为真</returns>
         public bool IsMsgCloseDsReq()
         {
             return (m_blIsMsgclosedsreq);
@@ -731,8 +803,9 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Has the OK button been pressed since the last MSG.ENABLEDS?
+        /// 自上次MSG.ENABLEDS之后，是否按下了OK按钮?
         /// </summary>
-        /// <returns>True if the OK button was pressed</returns>
+        /// <returns>True if the OK button was pressed 如果按下OK按钮，则为真</returns>
         public bool IsMsgCloseDsOk()
         {
             return (m_blIsMsgclosedsok);
@@ -740,11 +813,12 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Monitor for DAT.NULL / MSG.* stuff...
+        /// 监控 DAT.NULL /MSG>* 的东西……
         /// </summary>
-        /// <param name="a_intptrHwnd">Window handle that we're monitoring</param>
-        /// <param name="a_iMsg">A message</param>
-        /// <param name="a_intptrWparam">a parameter for the message</param>
-        /// <param name="a_intptrLparam">another parameter for the message</param>
+        /// <param name="a_intptrHwnd">Window handle that we're monitoring 我们正在监视的窗口句柄</param>
+        /// <param name="a_iMsg">A message 一个消息</param>
+        /// <param name="a_intptrWparam">a parameter for the message 消息的参数</param>
+        /// <param name="a_intptrLparam">another parameter for the message 消息的另一个参数</param>
         /// <returns></returns>
         [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust", Unrestricted = false)]
         public bool PreFilterMessage
