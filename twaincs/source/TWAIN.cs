@@ -837,12 +837,16 @@ namespace TWAINWorkingGroup
             // bump to state 5 before processing DAT_USERINTERFACE, but some
             // drivers are really eager to get going, and throw MSG_XFERREADY
             // before even get a chance to finish the command...
+            //只有在MSG.ENABLEDS*之后才有效，，或者我们正在处理DAT_USERINTERFACE。
+            //我们不希望在处理DAT_USERINTERFACE之前达到状态5，
+            //但是有些驱动程序确实急于启动，甚至在有机会完成命令之前就抛出MSG_XFERREADY…
             if ((m_state < STATE.S5) && !m_blRunningDatUserinterface)
             {
                 return (false);
             }
 
             // Convert the data...
+            //转换的数据…
             msg = new MESSAGE();
             msg.hwnd = a_intptrHwnd;
             msg.message = (uint)a_iMsg;
@@ -850,6 +854,7 @@ namespace TWAINWorkingGroup
             msg.lParam = a_intptrLparam;
 
             // Allocate memory that we can give to the driver...
+            //分配内存，我们可以给设备…
             if (m_tweventPreFilterMessage.pEvent == IntPtr.Zero)
             {
                 m_tweventPreFilterMessage.pEvent = Marshal.AllocHGlobal(Marshal.SizeOf(msg) + 65536);
@@ -857,6 +862,7 @@ namespace TWAINWorkingGroup
             Marshal.StructureToPtr(msg, m_tweventPreFilterMessage.pEvent, true);
 
             // See if the driver wants the event...
+            //看看设备是否想要这个事件…
             m_tweventPreFilterMessage.TWMessage = 0;
             sts = DatEvent(DG.CONTROL, MSG.PROCESSEVENT, ref m_tweventPreFilterMessage, true);
             if ((sts != STS.DSEVENT) && (sts != STS.NOTDSEVENT))
@@ -866,14 +872,16 @@ namespace TWAINWorkingGroup
 
             // All done, tell the app we consumed the event if we
             // got back a status telling us that...
+            //一切完成，告诉应用我们消费事件，如果我们得到一个状态告诉我们…
             return (sts == STS.DSEVENT);
         }
 
         /// <summary>
         /// Rollback the TWAIN state machine to the specified value, with an
         /// automatic resync if it detects a sequence error...
+        /// 将TWAIN状态机回滚到指定的值，如果检测到序列错误，将自动重新同步…
         /// </summary>
-        /// <param name="a_stateTarget">The TWAIN state that we want to end up at</param>
+        /// <param name="a_stateTarget">The TWAIN state that we want to end up at 这TWAIN状态是我们想要结束的</param>
         static int s_iCloseDsmDelay = 0;
         [SecurityPermissionAttribute(SecurityAction.LinkDemand, Flags = SecurityPermissionFlag.UnmanagedCode)]
         public TWAIN.STATE Rollback(STATE a_stateTarget)
@@ -883,23 +891,27 @@ namespace TWAINWorkingGroup
             STATE stateStart;
 
             // Nothing to do here...
+            //什么都不做
             if (m_state <= STATE.S2)
             {
                 return (m_state);
             }
 
             // Submit the work to the TWAIN thread...
+            //提交工作给TWAIN线程
             if (m_runinuithreaddelegate != null)
             {
                 lock (m_lockTwain)
                 {
                     // No point in continuing...
+                    //没有必要继续……
                     if (m_twaincommand == null)
                     {
                         return (m_state);
                     }
 
                     // Set the command variables...
+                    //设置命令变量…
                     ThreadData threaddata = default(ThreadData);
                     threaddata.blExitThread = true;
                     long lIndex = m_twaincommand.Submit(threaddata);
@@ -907,12 +919,14 @@ namespace TWAINWorkingGroup
                     // Submit the command and wait for the reply, the delay
                     // is needed because Mac OS X doesn't gracefully handle
                     // the loss of a mutex...
+                    //提交命令并等待响应，延迟是必要的，因为Mac OS X不能优雅地处理互斥量的丢失……
                     s_iCloseDsmDelay = 0;
                     CallerToThreadSet();
                     ThreadToRollbackWaitOne();
                     Thread.Sleep(s_iCloseDsmDelay);
 
                     // Clear the command variables...
+                    //清除命令变量…
                     m_twaincommand.Delete(lIndex);
                 }
             }
@@ -921,12 +935,14 @@ namespace TWAINWorkingGroup
                 lock (m_lockTwain)
                 {
                     // No point in continuing...
+                    //没有必要继续……
                     if (m_twaincommand == null)
                     {
                         return (m_state);
                     }
 
                     // Set the command variables...
+                    //设置命令变量…
                     ThreadData threaddata = default(ThreadData);
                     threaddata.stateRollback = a_stateTarget;
                     threaddata.blRollback = true;
@@ -935,12 +951,14 @@ namespace TWAINWorkingGroup
                     // Submit the command and wait for the reply, the delay
                     // is needed because Mac OS X doesn't gracefully handle
                     // the loss of a mutex...
+                    //提交命令并等待响应，延迟是必要的，因为Mac OS X不能优雅地处理互斥量的丢失……
                     s_iCloseDsmDelay = 0;
                     CallerToThreadSet();
                     ThreadToRollbackWaitOne();
                     Thread.Sleep(s_iCloseDsmDelay);
 
                     // Clear the command variables...
+                    //清除命令变量…
                     m_twaincommand.Delete(lIndex);
                 }
                 return (m_state);
@@ -948,6 +966,7 @@ namespace TWAINWorkingGroup
 
             // If we get a sequence error, then we'll repeat the loop from
             // the highest possible state to see if we can fix the problem...
+            //如果我们得到一个队列错误，然后我们将从最高可能的状态重复循环，看看我们是否可以修复问题…
             iRetry = 2;
             stateStart = GetState();
             while (iRetry-- > 0)
@@ -1017,6 +1036,7 @@ namespace TWAINWorkingGroup
                 {
                     // Do this to prevent a deadlock on Mac OS X, two seconds
                     // better be enough to finish up...
+                    //这样做是为了防止在Mac OS X上出现死锁，最好两秒钟就能完成。
                     if (GetPlatform() == Platform.MACOSX)
                     {
                         ThreadToRollbackSet();
@@ -1024,6 +1044,7 @@ namespace TWAINWorkingGroup
                     }
 
                     // Now do the rest of it...
+                    //现在做剩下的…
                     sts = DatParent(DG.CONTROL, MSG.CLOSEDSM, ref m_intptrHwnd);
                     if (sts == STS.SEQERROR)
                     {
@@ -1034,18 +1055,21 @@ namespace TWAINWorkingGroup
                 }
 
                 // All done...
+                //都做好了…
                 break;
             }
 
             // How did we do?
+            //我们做得怎么样?
             return (m_state);
         }
 
         /// <summary>
         /// Send a command to the currently loaded DSM...
+        /// 发送命令到当前加载的DSM…
         /// </summary>
-        /// <param name="a_functionarguments">tokenized command and anything needed</param>
-        /// <returns>true to quit</returns>
+        /// <param name="a_functionarguments">tokenized command and anything needed 符号化命令和任何需要的东西</param>
+        /// <returns>true to quit 真正的退出</returns>
         public TWAIN.STS Send(string a_szDg, string a_szDat, string a_szMsg, ref string a_szTwmemref, ref string a_szResult)
         {
             int iDg;
@@ -1057,6 +1081,7 @@ namespace TWAINWorkingGroup
             TWAIN.MSG msg = TWAIN.MSG.NULL;
 
             // Init stuff...
+            //初始化东西...
             iDg = 0;
             iDat = 0;
             iMsg = 0;
@@ -1064,6 +1089,7 @@ namespace TWAINWorkingGroup
             a_szResult = "";
 
             // Look for DG...
+            //寻找DG...
             if (!a_szDg.ToLowerInvariant().StartsWith("dg_"))
             {
                 TWAINWorkingGroup.Log.Error("Unrecognized dg - <" + a_szDg + ">");
@@ -1072,6 +1098,7 @@ namespace TWAINWorkingGroup
             else
             {
                 // Look for hex number (take anything)...
+                //寻找十六进制数(拿到的任何东西)…
                 if (a_szDg.ToLowerInvariant().StartsWith("dg_0x"))
                 {
                     if (!int.TryParse(a_szDg.ToLowerInvariant().Substring(3), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out iDg))
@@ -1092,6 +1119,7 @@ namespace TWAINWorkingGroup
             }
 
             // Look for DAT...
+            //寻找DAT...
             if (!a_szDat.ToLowerInvariant().StartsWith("dat_"))
             {
                 TWAINWorkingGroup.Log.Error("Unrecognized dat - <" + a_szDat + ">");
@@ -1100,6 +1128,7 @@ namespace TWAINWorkingGroup
             else
             {
                 // Look for hex number (take anything)...
+                //寻找十六进制数(拿到的任何东西)…
                 if (a_szDat.ToLowerInvariant().StartsWith("dat_0x"))
                 {
                     if (!int.TryParse(a_szDat.ToLowerInvariant().Substring(4), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out iDat))
@@ -1120,6 +1149,7 @@ namespace TWAINWorkingGroup
             }
 
             // Look for MSG...
+            //寻找MSG...
             if (!a_szMsg.ToLowerInvariant().StartsWith("msg_"))
             {
                 TWAINWorkingGroup.Log.Error("Unrecognized msg - <" + a_szMsg + ">");
@@ -1128,6 +1158,7 @@ namespace TWAINWorkingGroup
             else
             {
                 // Look for hex number (take anything)...
+                //寻找十六进制数(拿到的任何东西)…
                 if (a_szMsg.ToLowerInvariant().StartsWith("msg_0x"))
                 {
                     if (!int.TryParse(a_szMsg.ToLowerInvariant().Substring(4), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out iMsg))
@@ -1148,11 +1179,13 @@ namespace TWAINWorkingGroup
             }
 
             // Send the command...
+            //发送命令...
             switch (iDat)
             {
                 // Ruh-roh, since we can't marshal it, we have to return an error,
                 // it would be nice to have a solution for this, but that will need
                 // a dynamic marshalling system...
+                //Ruh-roh，因为我们不能编组(marshal)它，我们必须返回一个错误，这将是一个很好的解决方案，但这将需要一个动态编组(marshalling)系统…
                 default:
                     sts = TWAIN.STS.BADPROTOCOL;
                     break;
@@ -1209,6 +1242,7 @@ namespace TWAINWorkingGroup
                         // Skip symbols for msg_querysupport, otherwise 0 gets turned into false, also
                         // if the command fails the return value is whatever was sent into us, which
                         // matches the experience one should get with C/C++...
+                        //跳过msg_querysupport的符号，否则0就会变成false，如果命令失败，返回值是发送给我们的任何内容，这与使用C/ c++应该得到的经验相匹配……
                         string szStatus = "";
                         TWAIN.TW_CAPABILITY twcapability = default(TWAIN.TW_CAPABILITY);
                         CsvToCapability(ref twcapability, ref szStatus, a_szTwmemref);
@@ -1216,8 +1250,10 @@ namespace TWAINWorkingGroup
                         if ((sts == TWAIN.STS.SUCCESS) || (sts == TWAIN.STS.CHECKSTATUS))
                         {
                             // Convert the data to CSV...
+                            //转换数据到CSV…
                             a_szTwmemref = CapabilityToCsv(twcapability, ((TWAIN.MSG)iMsg != TWAIN.MSG.QUERYSUPPORT));
                             // Free the handle if the driver created it...
+                            //释放句柄，如果驱动程序创建了它…
                             switch ((TWAIN.MSG)iMsg)
                             {
                                 default: break;
@@ -1549,11 +1585,14 @@ namespace TWAINWorkingGroup
         // Public Helper Functions, we're mapping TWAIN structures to strings to
         // make it easier for the application to work with the data.  All of the
         // functions that do that are located here...
+        //Public Helper函数，我们将TWAIN结构映射到字符串，使应用程序更容易处理数据。
+        //所有的函数都位于这里…
         ///////////////////////////////////////////////////////////////////////////////
         #region Public Helper Functions...
 
         /// <summary>
         /// Copy intptr to intptr...
+        /// 复制 intptr to intptr...
         /// </summary>
         /// <param name="dest"></param>
         /// <param name="src"></param>
@@ -1572,6 +1611,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Safely move intptr to intptr...
+        /// 安全地删除 intptr to intptr...
         /// </summary>
         /// <param name="dest"></param>
         /// <param name="src"></param>
@@ -1590,6 +1630,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Write stuff to a file without having to rebuffer it...
+        /// 写东西到一个文件，而不需要重新缓冲它…
         /// </summary>
         /// <param name="a_szFilename"></param>
         /// <param name="a_intptrPtr"></param>
@@ -1598,12 +1639,15 @@ namespace TWAINWorkingGroup
         public static int WriteImageFile(string a_szFilename, IntPtr a_intptrPtr, int a_iBytes, out string a_szFinalFilename)
         {
             // Init stuff...
+            //初始化东西
             a_szFinalFilename = "";
 
             // Try to write our file...
+            //尝试写我们的文件…
             try
             {
                 // If we don't have an extension, try to add one...
+                //如果我们没有扩展，试着添加一个…
                 if (!Path.GetFileName(a_szFilename).Contains(".") && (a_iBytes >= 2))
                 {
                     byte[] abData = new byte[2];
@@ -1628,9 +1672,11 @@ namespace TWAINWorkingGroup
                 }
 
                 // For the caller...
+                //对于调用者……
                 a_szFinalFilename = a_szFilename;
 
                 // Handle Windows...
+                //处理窗口……
                 if (TWAIN.GetPlatform() == TWAIN.Platform.WINDOWS)
                 {
                     IntPtr intptrFile;
@@ -1646,6 +1692,7 @@ namespace TWAINWorkingGroup
                 }
 
                 // Handle everybody else...
+                //处理其他人……
                 else
                 {
                     IntPtr intptrFile;
@@ -1670,9 +1717,10 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of an audio info to a string that we can show in
         /// our simple GUI...
+        /// 换音频信息的内容到一个字符串，我们可以显示在我们的简单GUI…
         /// </summary>
-        /// <param name="a_twaudioinfo">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twaudioinfo">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string AudioinfoToCsv(TW_AUDIOINFO a_twaudioinfo)
         {
             try
@@ -1692,9 +1740,10 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of a callback to a string that we can show in
         /// our simple GUI...
+        /// 将回调的内容转换为我们可以在简单GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twcallback">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twcallback">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string CallbackToCsv(TW_CALLBACK a_twcallback)
         {
             try
@@ -1714,21 +1763,25 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert the contents of a string to an callback structure...
+        /// 将字符串的内容转换为回调结构…
         /// </summary>
-        /// <param name="a_twcallback">A TWAIN structure</param>
-        /// <param name="a_szCallback">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twcallback">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szCallback">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         public static bool CsvToCallback(ref TW_CALLBACK a_twcallback, string a_szCallback)
         {
             // Init stuff...
+            //初始化东西
             a_twcallback = default(TW_CALLBACK);
 
             // Build the string...
+            //构造字符串
             try
             {
                 string[] asz = CSV.Parse(a_szCallback);
 
                 // Grab the values...
+                //抓住值...
                 a_twcallback.CallBackProc = (IntPtr)UInt64.Parse(asz[0]);
                 a_twcallback.RefCon = uint.Parse(asz[1]);
                 a_twcallback.Message = ushort.Parse(asz[2]);
@@ -1740,15 +1793,17 @@ namespace TWAINWorkingGroup
             }
 
             // All done...
+            //做完了...
             return (true);
         }
 
         /// <summary>
         /// Convert the contents of a callback2 to a string that we can show in
         /// our simple GUI...
+        /// 将callback2的内容转换为我们可以在简单GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twcallback2">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twcallback2">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string Callback2ToCsv(TW_CALLBACK2 a_twcallback2)
         {
             try
@@ -1768,21 +1823,25 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert the contents of a string to an callback2 structure...
+        /// 将字符串的内容转换为callback2结构…
         /// </summary>
-        /// <param name="a_twcallback2">A TWAIN structure</param>
-        /// <param name="a_szCallback2">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twcallback2">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szCallback2">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         public static bool CsvToCallback2(ref TW_CALLBACK2 a_twcallback2, string a_szCallback2)
         {
             // Init stuff...
+            //初始化东西...
             a_twcallback2 = default(TW_CALLBACK2);
 
             // Build the string...
+            //构造字符串...
             try
             {
                 string[] asz = CSV.Parse(a_szCallback2);
 
                 // Grab the values...
+                //抓住值...
                 a_twcallback2.CallBackProc = (IntPtr)UInt64.Parse(asz[0]);
                 a_twcallback2.RefCon = (UIntPtr)UInt64.Parse(asz[1]);
                 a_twcallback2.Message = ushort.Parse(asz[2]);
@@ -1794,15 +1853,17 @@ namespace TWAINWorkingGroup
             }
 
             // All done...
+            //做完了...
             return (true);
         }
 
         /// <summary>
         /// Convert the contents of a capability to a string that we can show in
         /// our simple GUI....
+        /// 将容量的内容转换为一个字符串，我们可以在简单的GUI中显示该字符串…
         /// </summary>
-        /// <param name="a_twcapability">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twcapability">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust", Unrestricted = false)]
         public string CapabilityToCsv(TW_CAPABILITY a_twcapability, bool a_blUseSymbols)
         {
@@ -1812,10 +1873,11 @@ namespace TWAINWorkingGroup
             uint NumItems;
 
             // Handle the container...
+            //处理容器...
             switch (a_twcapability.ConType)
             {
                 default:
-                    return ("(unrecognized container)");
+                    return ("(unrecognized container)"); //未被认可的容器
 
                 case TWON.ARRAY:
                     {
@@ -1823,9 +1885,11 @@ namespace TWAINWorkingGroup
                         CSV csvArray;
 
                         // Mac has a level of indirection and a different structure (ick)...
+                        //Mac有一个间接的层次和一个不同的结构(ick)…
                         if (ms_platform == Platform.MACOSX)
                         {
                             // Crack the container...
+                            //用黑客手段处理容器...
                             TW_ARRAY_MACOSX twarraymacosx = default(TW_ARRAY_MACOSX);
                             intptrLocked = DsmMemLock(a_twcapability.hContainer);
                             twarraymacosx = (TW_ARRAY_MACOSX)Marshal.PtrToStructure(intptrLocked, typeof(TW_ARRAY_MACOSX));
@@ -1836,6 +1900,7 @@ namespace TWAINWorkingGroup
                         else
                         {
                             // Crack the container...
+                            //用黑客手段处理容器...
                             TW_ARRAY twarray = default(TW_ARRAY);
                             intptrLocked = DsmMemLock(a_twcapability.hContainer);
                             twarray = (TW_ARRAY)Marshal.PtrToStructure(intptrLocked, typeof(TW_ARRAY));
@@ -1845,10 +1910,12 @@ namespace TWAINWorkingGroup
                         }
 
                         // Start building the string...
+                        //开始构造开始...
                         csvArray = Common(a_twcapability.Cap, a_twcapability.ConType, ItemType);
                         csvArray.Add(NumItems.ToString());
 
                         // Tack on the stuff from the ItemList...
+                        //从项目列表中添加内容…
                         if (a_blUseSymbols)
                         {
                             string szValue;
@@ -1868,6 +1935,7 @@ namespace TWAINWorkingGroup
                         }
 
                         // All done...
+                        //做完...
                         DsmMemUnlock(a_twcapability.hContainer);
                         return (csvArray.Get());
                     }
@@ -1878,9 +1946,11 @@ namespace TWAINWorkingGroup
                         CSV csvEnum;
 
                         // Mac has a level of indirection and a different structure (ick)...
+                        //Mac有一个间接的层次和一个不同的结构(ick)…
                         if (ms_platform == Platform.MACOSX)
                         {
                             // Crack the container...
+                            //用黑客手段处理容器...
                             TW_ENUMERATION_MACOSX twenumerationmacosx = default(TW_ENUMERATION_MACOSX);
                             intptrLocked = DsmMemLock(a_twcapability.hContainer);
                             twenumerationmacosx = (TW_ENUMERATION_MACOSX)Marshal.PtrToStructure(intptrLocked, typeof(TW_ENUMERATION_MACOSX));
@@ -1895,9 +1965,11 @@ namespace TWAINWorkingGroup
                             csvEnum.Add(twenumerationmacosx.DefaultIndex.ToString());
                         }
                         // Windows or the 2.4+ Linux DSM...
+                        //Windows平台或 2.4以上的Linu平台的 DSM
                         else if ((ms_platform == Platform.WINDOWS) || ((m_blFoundLatestDsm || m_blFoundLatestDsm64) && (m_linuxdsm == LinuxDsm.IsLatestDsm)))
                         {
                             // Crack the container...
+                            //用黑客手段处理容器...
                             TW_ENUMERATION twenumeration = default(TW_ENUMERATION);
                             intptrLocked = DsmMemLock(a_twcapability.hContainer);
                             twenumeration = (TW_ENUMERATION)Marshal.PtrToStructure(intptrLocked, typeof(TW_ENUMERATION));
@@ -1906,15 +1978,18 @@ namespace TWAINWorkingGroup
                             intptr = (IntPtr)((UInt64)intptrLocked + (UInt64)Marshal.SizeOf(twenumeration));
 
                             // Start building the string...
+                            //开始构造开始...
                             csvEnum = Common(a_twcapability.Cap, a_twcapability.ConType, ItemType);
                             csvEnum.Add(NumItems.ToString());
                             csvEnum.Add(twenumeration.CurrentIndex.ToString());
                             csvEnum.Add(twenumeration.DefaultIndex.ToString());
                         }
                         // The -2.3 Linux DSM...
+                        //2.3以下的Linux平台的DSM...
                         else if (m_blFound020302Dsm64bit && (m_linuxdsm == LinuxDsm.Is020302Dsm64bit))
                         {
                             // Crack the container...
+                            //用黑客手段处理容器...
                             TW_ENUMERATION_LINUX64 twenumerationlinux64 = default(TW_ENUMERATION_LINUX64);
                             intptrLocked = DsmMemLock(a_twcapability.hContainer);
                             twenumerationlinux64 = (TW_ENUMERATION_LINUX64)Marshal.PtrToStructure(intptrLocked, typeof(TW_ENUMERATION_LINUX64));
@@ -1923,20 +1998,23 @@ namespace TWAINWorkingGroup
                             intptr = (IntPtr)((UInt64)intptrLocked + (UInt64)Marshal.SizeOf(twenumerationlinux64));
 
                             // Start building the string...
+                            //开始构造开始...
                             csvEnum = Common(a_twcapability.Cap, a_twcapability.ConType, ItemType);
                             csvEnum.Add(NumItems.ToString());
                             csvEnum.Add(twenumerationlinux64.CurrentIndex.ToString());
                             csvEnum.Add(twenumerationlinux64.DefaultIndex.ToString());
                         }
                         // This shouldn't be possible, but what the hey...
+                        //这是不可能的，但是…
                         else
                         {
-                            Log.Error("This is serious, you win a cookie for getting here...");
+                            Log.Error("This is serious, you win a cookie for getting here...");//这是严肃的，你来这里就能赢得一块饼干…
                             DsmMemUnlock(a_twcapability.hContainer);
                             return ("");
                         }
 
                         // Tack on the stuff from the ItemList...
+                        //从项目列表中添加内容…
                         if (a_blUseSymbols)
                         {
                             string szValue;
@@ -1956,6 +2034,7 @@ namespace TWAINWorkingGroup
                         }
 
                         // All done...
+                        //做完
                         DsmMemUnlock(a_twcapability.hContainer);
                         return (csvEnum.Get());
                     }
@@ -1965,9 +2044,11 @@ namespace TWAINWorkingGroup
                         CSV csvOnevalue;
 
                         // Mac has a level of indirection and a different structure (ick)...
+                        //Mac有一个间接的层次和一个不同的结构(ick)…
                         if (ms_platform == Platform.MACOSX)
                         {
                             // Crack the container...
+                            //用黑客手段处理容器...
                             TW_ONEVALUE_MACOSX twonevaluemacosx = default(TW_ONEVALUE_MACOSX);
                             intptrLocked = DsmMemLock(a_twcapability.hContainer);
                             twonevaluemacosx = (TW_ONEVALUE_MACOSX)Marshal.PtrToStructure(intptrLocked, typeof(TW_ONEVALUE_MACOSX));
@@ -1977,6 +2058,7 @@ namespace TWAINWorkingGroup
                         else
                         {
                             // Crack the container...
+                            //用黑客手段处理容器...
                             TW_ONEVALUE twonevalue = default(TW_ONEVALUE);
                             intptrLocked = DsmMemLock(a_twcapability.hContainer);
                             twonevalue = (TW_ONEVALUE)Marshal.PtrToStructure(intptrLocked, typeof(TW_ONEVALUE));
@@ -1985,9 +2067,11 @@ namespace TWAINWorkingGroup
                         }
 
                         // Start building the string...
+                        //开始构造开始...
                         csvOnevalue = Common(a_twcapability.Cap, a_twcapability.ConType, ItemType);
 
                         // Tack on the stuff from the Item...
+                        //从项目列表中添加内容…
                         if (a_blUseSymbols)
                         {
                             string szValue;
@@ -2001,6 +2085,7 @@ namespace TWAINWorkingGroup
                         }
 
                         // All done...
+                        //做完...
                         DsmMemUnlock(a_twcapability.hContainer);
                         return (csvOnevalue.Get());
                     }
@@ -2016,6 +2101,7 @@ namespace TWAINWorkingGroup
                         TW_RANGE_FIX32_MACOSX twrangefix32macosx;
 
                         // Mac has a level of indirection and a different structure (ick)...
+                        //Mac有一个间接的层次和一个不同的结构(ick)…
                         twrange = default(TW_RANGE);
                         if (ms_platform == Platform.MACOSX)
                         {
@@ -2036,6 +2122,7 @@ namespace TWAINWorkingGroup
                             twrangefix32.CurrentValue = twrangefix32macosx.CurrentValue;
                         }
                         // Windows or the 2.4+ Linux DSM...
+                        //Windows平台或 2.4以上的Linu平台的 DSM
                         else if ((ms_platform == Platform.WINDOWS) || (m_linuxdsm == LinuxDsm.IsLatestDsm) || ((m_blFoundLatestDsm || m_blFoundLatestDsm64) && (m_linuxdsm == LinuxDsm.IsLatestDsm)))
                         {
                             intptrLocked = DsmMemLock(a_twcapability.hContainer);
@@ -2043,6 +2130,7 @@ namespace TWAINWorkingGroup
                             twrangefix32 = (TW_RANGE_FIX32)Marshal.PtrToStructure(intptrLocked, typeof(TW_RANGE_FIX32));
                         }
                         // The -2.3 Linux DSM...
+                        //2.3以下的Linux DSM...
                         else
                         {
                             intptrLocked = DsmMemLock(a_twcapability.hContainer);
@@ -2063,9 +2151,11 @@ namespace TWAINWorkingGroup
                         }
 
                         // Start the string...
+                        //开始构造开始...
                         csvRange = Common(a_twcapability.Cap, a_twcapability.ConType, twrange.ItemType);
 
                         // Tack on the data...
+                        //添加数据…
                         switch ((TWTY)twrange.ItemType)
                         {
                             default:
@@ -2148,11 +2238,12 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of a string into something we can poke into a
         /// TW_CAPABILITY structure...
+        /// 将字符串的内容转换成我们可以插入到TW_CAPABILITY结构中…
         /// </summary>
-        /// <param name="a_twcapability">A TWAIN structure</param>
-        /// <param name="a_szSetting">A CSV string of the TWAIN structure</param>
-        /// <param name="a_szValue">The container for this capability</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twcapability">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szSetting">A CSV string of the TWAIN structure 一个CSV字符串结构</param>
+        /// <param name="a_szValue">The container for this capability 此功能的容器</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust", Unrestricted = false)]
         public bool CsvToCapability(ref TW_CAPABILITY a_twcapability, ref string a_szSetting, string a_szValue)
         {
@@ -2164,9 +2255,11 @@ namespace TWAINWorkingGroup
             string[] asz;
 
             // We need some protection for this one...
+            //我们需要一些保护这个…
             try
             {
                 // Tokenize our values...
+                //标记我们的价值观……
                 asz = CSV.Parse(a_szValue);
                 if (asz.GetLength(0) < 1)
                 {
@@ -2175,9 +2268,11 @@ namespace TWAINWorkingGroup
                 }
 
                 // Set the capability from text or hex...
+                //设置功能从文本或十六进制来…
                 try
                 {
                     // see if it is a custom cap
+                    //看看这是不是一顶定制的cap
                     if ((asz[0][0] == '8') || asz[0].StartsWith("0x8"))
                     {
                         a_twcapability.Cap = (CAP)0xFFFF;
@@ -2196,6 +2291,7 @@ namespace TWAINWorkingGroup
                 catch
                 {
                     // don't log this exception...
+                    //不要记录这个异常……
                     a_twcapability.Cap = (CAP)0xFFFF;
                 }
                 if ((a_twcapability.Cap == (CAP)0xFFFF) || !asz[0].Contains("_"))
@@ -2204,6 +2300,7 @@ namespace TWAINWorkingGroup
                 }
 
                 // Set the container from text or decimal...
+                //从文本或十进制设置容器…
                 if (asz.GetLength(0) >= 2)
                 {
                     try
@@ -2213,11 +2310,13 @@ namespace TWAINWorkingGroup
                     catch
                     {
                         // don't log this exception...
+                        //不要记录这个异常……
                         a_twcapability.ConType = (TWON)ushort.Parse(asz[1]);
                     }
                 }
 
                 // Set the item type from text or decimal...
+                //设置项目类型从文本或十进制…
                 if (asz.GetLength(0) >= 3)
                 {
                     try
@@ -2227,11 +2326,13 @@ namespace TWAINWorkingGroup
                     catch
                     {
                         // don't log this exception...
+                        //不要记录这个异常……
                         twty = (TWTY)ushort.Parse(asz[2]);
                     }
                 }
 
                 // Assign the new value...
+                //分配新值…
                 if (asz.GetLength(0) >= 4)
                 {
                     switch (a_twcapability.ConType)
@@ -2242,6 +2343,7 @@ namespace TWAINWorkingGroup
 
                         case TWON.ARRAY:
                             // Validate...
+                            //验证……
                             if (asz.GetLength(0) < 4)
                             {
                                 a_szSetting = "Set Capability: (insufficient number of arguments)";
@@ -2249,41 +2351,50 @@ namespace TWAINWorkingGroup
                             }
 
                             // Get the values...
+                            //获取值...
                             u32NumItems = uint.Parse(asz[3]);
 
                             // Allocate the container (go for worst case, which is TW_STR255)...
+                            //分配容器(最坏的情况是TW_STR255)…
                             if (ms_platform == Platform.MACOSX)
                             {
                                 // Allocate...
+                                //分配……
                                 a_twcapability.hContainer = DsmMemAlloc((uint)(Marshal.SizeOf(default(TW_ARRAY_MACOSX)) + (((int)u32NumItems + 1) * Marshal.SizeOf(default(TW_STR255)))));
                                 intptr = DsmMemLock(a_twcapability.hContainer);
 
                                 // Set the meta data...
+                                //设置元数据...
                                 TW_ARRAY_MACOSX twarraymacosx = default(TW_ARRAY_MACOSX);
                                 twarraymacosx.ItemType = (uint)twty;
                                 twarraymacosx.NumItems = u32NumItems;
                                 Marshal.StructureToPtr(twarraymacosx, intptr, true);
 
                                 // Get the pointer to the ItemList...
+                                //获取项目列表的指针…
                                 intptr = (IntPtr)((UInt64)intptr + (UInt64)Marshal.SizeOf(twarraymacosx));
                             }
                             else
                             {
                                 // Allocate...
+                                //分配...
                                 a_twcapability.hContainer = DsmMemAlloc((uint)(Marshal.SizeOf(default(TW_ARRAY)) + (((int)u32NumItems + 1) * Marshal.SizeOf(default(TW_STR255)))));
                                 intptr = DsmMemLock(a_twcapability.hContainer);
 
                                 // Set the meta data...
+                                //设置元数据...
                                 TW_ARRAY twarray = default(TW_ARRAY);
                                 twarray.ItemType = twty;
                                 twarray.NumItems = u32NumItems;
                                 Marshal.StructureToPtr(twarray, intptr, true);
 
                                 // Get the pointer to the ItemList...
+                                //获取项目列表的指针…
                                 intptr = (IntPtr)((UInt64)intptr + (UInt64)Marshal.SizeOf(twarray));
                             }
 
                             // Set the ItemList...
+                            //设置列表项
                             for (ii = 0; ii < u32NumItems; ii++)
                             {
                                 szResult = SetIndexedItem(a_twcapability, twty, intptr, ii, asz[ii + 4]);
@@ -2294,11 +2405,13 @@ namespace TWAINWorkingGroup
                             }
 
                             // All done...
+                            //做完...
                             DsmMemUnlock(a_twcapability.hContainer);
                             return (true);
 
                         case TWON.ENUMERATION:
                             // Validate...
+                            //验证
                             if (asz.GetLength(0) < 6)
                             {
                                 a_szSetting = "Set Capability: (insufficient number of arguments)";
@@ -2306,16 +2419,20 @@ namespace TWAINWorkingGroup
                             }
 
                             // Get the values...
+                            //获取值
                             u32NumItems = uint.Parse(asz[3]);
 
                             // Allocate the container (go for worst case, which is TW_STR255)...
+                            //分配容器(最坏的情况是TW_STR255)…
                             if (ms_platform == Platform.MACOSX)
                             {
                                 // Allocate...
+                                //分配...
                                 a_twcapability.hContainer = DsmMemAlloc((uint)(Marshal.SizeOf(default(TW_ENUMERATION_MACOSX)) + (((int)u32NumItems + 1) * Marshal.SizeOf(default(TW_STR255)))));
                                 intptr = DsmMemLock(a_twcapability.hContainer);
 
                                 // Set the meta data...
+                                //设置元数据...
                                 TW_ENUMERATION_MACOSX twenumerationmacosx = default(TW_ENUMERATION_MACOSX);
                                 twenumerationmacosx.ItemType = (uint)twty;
                                 twenumerationmacosx.NumItems = u32NumItems;
@@ -2324,16 +2441,20 @@ namespace TWAINWorkingGroup
                                 Marshal.StructureToPtr(twenumerationmacosx, intptr, true);
 
                                 // Get the pointer to the ItemList...
+                                //获取项目列表的指针…
                                 intptr = (IntPtr)((UInt64)intptr + (UInt64)Marshal.SizeOf(twenumerationmacosx));
                             }
                             // Windows or the 2.4+ Linux DSM...
+                            //Windows平台或 2.4以上的Linux平台的DSM
                             else if ((ms_platform == Platform.WINDOWS) || ((m_linuxdsm == LinuxDsm.IsLatestDsm) || ((m_blFoundLatestDsm || m_blFoundLatestDsm64) && (m_linuxdsm == LinuxDsm.IsLatestDsm))))
                             {
                                 // Allocate...
+                                //分配...
                                 a_twcapability.hContainer = DsmMemAlloc((uint)(Marshal.SizeOf(default(TW_ENUMERATION)) + (((int)u32NumItems + 1) * Marshal.SizeOf(default(TW_STR255)))));
                                 intptr = DsmMemLock(a_twcapability.hContainer);
 
                                 // Set the meta data...
+                                //设置元数据...
                                 TW_ENUMERATION twenumeration = default(TW_ENUMERATION);
                                 twenumeration.ItemType = twty;
                                 twenumeration.NumItems = u32NumItems;
@@ -2342,16 +2463,20 @@ namespace TWAINWorkingGroup
                                 Marshal.StructureToPtr(twenumeration, intptr, true);
 
                                 // Get the pointer to the ItemList...
+                                //获取项目列表的指针…
                                 intptr = (IntPtr)((UInt64)intptr + (UInt64)Marshal.SizeOf(twenumeration));
                             }
                             // The -2.3 Linux DSM...
+                            //2.3以下的LInux平台的DSM
                             else
                             {
                                 // Allocate...
+                                //分配...
                                 a_twcapability.hContainer = DsmMemAlloc((uint)(Marshal.SizeOf(default(TW_ENUMERATION_LINUX64)) + (((int)u32NumItems + 1) * Marshal.SizeOf(default(TW_STR255)))));
                                 intptr = DsmMemLock(a_twcapability.hContainer);
 
                                 // Set the meta data...
+                                //设置元数据...
                                 TW_ENUMERATION_LINUX64 twenumerationlinux64 = default(TW_ENUMERATION_LINUX64);
                                 twenumerationlinux64.ItemType = twty;
                                 twenumerationlinux64.NumItems = u32NumItems;
@@ -2360,10 +2485,12 @@ namespace TWAINWorkingGroup
                                 Marshal.StructureToPtr(twenumerationlinux64, intptr, true);
 
                                 // Get the pointer to the ItemList...
+                                //获取项目列表的指针…
                                 intptr = (IntPtr)((UInt64)intptr + (UInt64)Marshal.SizeOf(twenumerationlinux64));
                             }
 
                             // Set the ItemList...
+                            //设置列表项...
                             for (ii = 0; ii < u32NumItems; ii++)
                             {
                                 szResult = SetIndexedItem(a_twcapability, twty, intptr, ii, asz[ii + 6]);
@@ -2374,11 +2501,13 @@ namespace TWAINWorkingGroup
                             }
 
                             // All done...
+                            //做完...
                             DsmMemUnlock(a_twcapability.hContainer);
                             return (true);
 
                         case TWON.ONEVALUE:
                             // Validate...
+                            //验证...
                             if (asz.GetLength(0) < 4)
                             {
                                 a_szSetting = "Set Capability: (insufficient number of arguments)";
@@ -2386,36 +2515,44 @@ namespace TWAINWorkingGroup
                             }
 
                             // Allocate the container (go for worst case, which is TW_STR255)...
+                            //分配容器(最坏的情况是TW_STR255)…
                             if (ms_platform == Platform.MACOSX)
                             {
                                 // Allocate...
+                                //分配...
                                 a_twcapability.hContainer = DsmMemAlloc((uint)(Marshal.SizeOf(default(TW_ONEVALUE_MACOSX)) + Marshal.SizeOf(default(TW_STR255))));
                                 intptr = DsmMemLock(a_twcapability.hContainer);
 
                                 // Set the meta data...
+                                //设置元数据...
                                 TW_ONEVALUE_MACOSX twonevaluemacosx = default(TW_ONEVALUE_MACOSX);
                                 twonevaluemacosx.ItemType = (uint)twty;
                                 Marshal.StructureToPtr(twonevaluemacosx, intptr, true);
 
                                 // Get the pointer to the ItemList...
+                                //获取项目列表的指针…
                                 intptr = (IntPtr)((UInt64)intptr + (UInt64)Marshal.SizeOf(twonevaluemacosx));
                             }
                             else
                             {
                                 // Allocate...
+                                //分配...
                                 a_twcapability.hContainer = DsmMemAlloc((uint)(Marshal.SizeOf(default(TW_ONEVALUE)) + Marshal.SizeOf(default(TW_STR255))));
                                 intptr = DsmMemLock(a_twcapability.hContainer);
 
                                 // Set the meta data...
+                                //设置元数据...
                                 TW_ONEVALUE twonevalue = default(TW_ONEVALUE);
                                 twonevalue.ItemType = twty;
                                 Marshal.StructureToPtr(twonevalue, intptr, true);
 
                                 // Get the pointer to the ItemList...
+                                //获取项目列表的指针…
                                 intptr = (IntPtr)((UInt64)intptr + (UInt64)Marshal.SizeOf(twonevalue));
                             }
 
                             // Set the Item...
+                            //设置列表项...
                             szResult = SetIndexedItem(a_twcapability, twty, intptr, 0, asz[3]);
                             if (szResult != "")
                             {
@@ -2423,11 +2560,13 @@ namespace TWAINWorkingGroup
                             }
 
                             // All done...
+                            //做完...
                             DsmMemUnlock(a_twcapability.hContainer);
                             return (true);
 
                         case TWON.RANGE:
                             // Validate...
+                            //验证
                             if (asz.GetLength(0) < 8)
                             {
                                 a_szSetting = "Set Capability: (insufficient number of arguments)";
@@ -2435,13 +2574,16 @@ namespace TWAINWorkingGroup
                             }
 
                             // Allocate the container (go for worst case, which is TW_STR255)...
+                            //分配容器(最坏的情况是TW_STR255)…
                             if (ms_platform == Platform.MACOSX)
                             {
                                 // Allocate...
+                                //分配...
                                 a_twcapability.hContainer = DsmMemAlloc((uint)(Marshal.SizeOf(default(TW_RANGE_MACOSX))));
                                 intptr = DsmMemLock(a_twcapability.hContainer);
                             }
                             // Windows or the 2.4+ Linux DSM...
+                            ////Windows平台或 2.4以上的Linux平台的DSM...
                             else if ((ms_platform == Platform.WINDOWS) || ((m_linuxdsm == LinuxDsm.IsLatestDsm) || ((m_blFoundLatestDsm || m_blFoundLatestDsm64) && (m_linuxdsm == LinuxDsm.IsLatestDsm))))
                             {
                                 // Allocate...
@@ -2452,11 +2594,13 @@ namespace TWAINWorkingGroup
                             else
                             {
                                 // Allocate...
+                                //分配...
                                 a_twcapability.hContainer = DsmMemAlloc((uint)(Marshal.SizeOf(default(TW_RANGE_LINUX64))));
                                 intptr = DsmMemLock(a_twcapability.hContainer);
                             }
 
                             // Set the Item...
+                            //设置列表项...
                             szResult = SetRangeItem(twty, intptr, asz);
                             if (szResult != "")
                             {
@@ -2464,12 +2608,14 @@ namespace TWAINWorkingGroup
                             }
 
                             // All done...
+                            //完成...
                             DsmMemUnlock(a_twcapability.hContainer);
                             return (true);
                     }
                 }
 
                 // All done (this is good for a get where only the cap was specified)...
+                //完成所有操作(这对于只指定了上限的get是有好处的)…
                 return (true);
             }
             catch (Exception exception)
@@ -2484,9 +2630,10 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of a custom DS data to a string that we can show in
         /// our simple GUI...
+        /// 将自定义DS数据的内容转换为我们可以在简单GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twcustomdsdata">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twcustomdsdata">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust", Unrestricted = false)]
         public string CustomdsdataToCsv(TW_CUSTOMDSDATA a_twcustomdsdata)
         {
@@ -2508,22 +2655,26 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert the contents of a string to a custom DS data structure...
+        /// 将字符串的内容转换为自定义的DS数据结构…
         /// </summary>
-        /// <param name="a_twcustomdsdata">A TWAIN structure</param>
-        /// <param name="a_szCustomdsdata">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twcustomdsdata">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szCustomdsdata">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust", Unrestricted = false)]
         public bool CsvToCustomdsdata(ref TW_CUSTOMDSDATA a_twcustomdsdata, string a_szCustomdsdata)
         {
             // Init stuff...
+            //初始化东西...
             a_twcustomdsdata = default(TW_CUSTOMDSDATA);
 
             // Build the string...
+            //构建字符串...
             try
             {
                 string[] asz = CSV.Parse(a_szCustomdsdata);
 
                 // Grab the values...
+                //抓值...
                 a_twcustomdsdata.InfoLength = uint.Parse(asz[0]);
                 a_twcustomdsdata.hData = DsmMemAlloc(a_twcustomdsdata.InfoLength);
                 IntPtr intptr = DsmMemLock(a_twcustomdsdata.hData);
@@ -2539,15 +2690,17 @@ namespace TWAINWorkingGroup
             }
 
             // All done...
+            //做完...
             return (true);
         }
 
         /// <summary>
         /// Convert the contents of a device event to a string that we can show in
         /// our simple GUI...
+        /// 将设备事件的内容转换为我们可以在简单GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twdeviceevent">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twdeviceevent">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string DeviceeventToCsv(TW_DEVICEEVENT a_twdeviceevent)
         {
             try
@@ -2576,9 +2729,10 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of an entry point to a string that
         /// we can show in our simple GUI...
+        /// 将入口点的内容转换为我们可以在简单GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twentrypoint">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twentrypoint">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string EntrypointToCsv(TW_ENTRYPOINT a_twentrypoint)
         {
             try
@@ -2602,9 +2756,10 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of an event to a string that
         /// we can show in our simple GUI...
+        /// 将事件的内容转换为我们可以在简单GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twevent">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twevent">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string EventToCsv(TW_EVENT a_twevent)
         {
             try
@@ -2624,9 +2779,10 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of an extimageinfo to a string that we can show in
         /// our simple GUI...
+        /// 将extimageinfo的内容转换为我们可以在简单GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twextimageinfo">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twextimageinfo">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string ExtimageinfoToCsv(TW_EXTIMAGEINFO a_twextimageinfo)
         {
             try
@@ -2686,16 +2842,19 @@ namespace TWAINWorkingGroup
         /// Convert the contents of a string to an extimageinfo structure,
         /// note that we don't have to worry about containers going in this
         /// direction...
+        /// 将字符串的内容转换为extimageinfo结构，注意我们不必担心容器会朝这个方向移动……
         /// </summary>
-        /// <param name="a_twextimageinfo">A TWAIN structure</param>
-        /// <param name="a_szExtimageinfo">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twextimageinfo">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szExtimageinfo">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         public static bool CsvToExtimageinfo(ref TW_EXTIMAGEINFO a_twextimageinfo, string a_szExtimageinfo)
         {
             // Init stuff...
+            //初始化东西...
             a_twextimageinfo = default(TW_EXTIMAGEINFO);
 
             // Build the string...
+            //构造字符串
             try
             {
                 int iField;
@@ -2703,6 +2862,7 @@ namespace TWAINWorkingGroup
                 string[] asz = CSV.Parse(a_szExtimageinfo);
 
                 // Set the number of entries (this is the easy bit)...
+                //设置条目的数量(这很简单)…
                 uint.TryParse(asz[0], out a_twextimageinfo.NumInfos);
                 if (a_twextimageinfo.NumInfos > 200)
                 {
@@ -2711,6 +2871,7 @@ namespace TWAINWorkingGroup
                 }
 
                 // Okay, walk all the entries in steps of TW_INFO...
+                //好的，在TW_INFO的步骤中遍历所有条目…
                 uTwinfo = 0;
                 for (iField = 1; iField < asz.Length; iField += 5)
                 {
@@ -2738,6 +2899,7 @@ namespace TWAINWorkingGroup
                         }
                     }
                     // We really don't care about these...
+                    //我们真的不关心这些…
                     ushort.TryParse(asz[iField + 1], out twinfo.ItemType);
                     ushort.TryParse(asz[iField + 2], out twinfo.NumItems);
                     ushort.TryParse(asz[iField + 3], out twinfo.ReturnCode);
@@ -2754,15 +2916,17 @@ namespace TWAINWorkingGroup
             }
 
             // All done...
+            //做完了...
             return (true);
         }
 
         /// <summary>
         /// Convert the contents of a filesystem to a string that we can show in
         /// our simple GUI...
+        /// 将文件系统的内容转换成我们可以在简单的GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twfilesystem">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twfilesystem">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string FilesystemToCsv(TW_FILESYSTEM a_twfilesystem)
         {
             try
@@ -2792,16 +2956,19 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert the contents of a string to a filesystem structure...
+        /// 将字符串的内容转换为文件系统结构…
         /// </summary>
-        /// <param name="a_twfilesystem">A TWAIN structure</param>
-        /// <param name="a_szFilesystem">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twfilesystem">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szFilesystem">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         public static bool CsvToFilesystem(ref TW_FILESYSTEM a_twfilesystem, string a_szFilesystem)
         {
             // Init stuff...
+            //初始化东西...
             a_twfilesystem = default(TW_FILESYSTEM);
 
             // Build the string...
+            //构造字符串...
             try
             {
                 string[] asz = CSV.Parse(a_szFilesystem);
@@ -2828,15 +2995,17 @@ namespace TWAINWorkingGroup
             }
 
             // All done...
+            //做完了...
             return (true);
         }
 
         /// <summary>
         /// Convert the contents of an iccprofile to a string that we can
         /// show in our simple GUI...
+        /// 将iccprofile的内容转换为我们可以在简单的GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twmemory">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twmemory">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string IccprofileToCsv(TW_MEMORY a_twmemory)
         {
             try
@@ -2857,9 +3026,10 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of an identity to a string that we can show in
         /// our simple GUI...
+        /// 将标识的内容转换为我们可以在简单GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twidentity">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twidentity">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string IdentityToCsv(TW_IDENTITY a_twidentity)
         {
             try
@@ -2888,21 +3058,25 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert the contents of a string to an identity structure...
+        /// 将字符串的内容转换为标识结构…
         /// </summary>
-        /// <param name="a_twidentity">A TWAIN structure</param>
-        /// <param name="a_szIdentity">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twidentity">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szIdentity">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         public static bool CsvToIdentity(ref TW_IDENTITY a_twidentity, string a_szIdentity)
         {
             // Init stuff...
+            //初始化东西...
             a_twidentity = default(TW_IDENTITY);
 
             // Build the string...
+            //构造字符串...
             try
             {
                 string[] asz = CSV.Parse(a_szIdentity);
 
                 // Grab the values...
+                //抓住值...
                 a_twidentity.Id = ulong.Parse(asz[0]);
                 a_twidentity.Version.MajorNum = ushort.Parse(asz[1]);
                 a_twidentity.Version.MinorNum = ushort.Parse(asz[2]);
@@ -2923,15 +3097,17 @@ namespace TWAINWorkingGroup
             }
 
             // All done...
+            //做完了...
             return (true);
         }
 
         /// <summary>
         /// Convert the contents of a image info to a string that we can show in
         /// our simple GUI...
+        /// 将图像信息的内容转换为一个字符串，我们可以在简单的GUI中显示…
         /// </summary>
-        /// <param name="a_twimageinfo">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twimageinfo">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string ImageinfoToCsv(TW_IMAGEINFO a_twimageinfo)
         {
             try
@@ -2964,21 +3140,25 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert the contents of a string to an callback structure...
+        /// 将字符串的内容转换为回调结构…
         /// </summary>
-        /// <param name="a_twimageinfo">A TWAIN structure</param>
-        /// <param name="a_szImageinfo">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twimageinfo">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szImageinfo">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         public static bool CsvToImageinfo(ref TW_IMAGEINFO a_twimageinfo, string a_szImageinfo)
         {
             // Init stuff...
+            //初始化东西...
             a_twimageinfo = default(TW_IMAGEINFO);
 
             // Build the string...
+            //构建字符串...
             try
             {
                 string[] asz = CSV.Parse(a_szImageinfo);
 
                 // Grab the values...
+                //抓住值...
                 a_twimageinfo.XResolution.Whole = (short)double.Parse(asz[0]);
                 a_twimageinfo.XResolution.Frac = (ushort)((double.Parse(asz[0]) - (double)a_twimageinfo.XResolution.Whole) * 65536.0);
                 a_twimageinfo.YResolution.Whole = (short)double.Parse(asz[1]);
@@ -3005,15 +3185,17 @@ namespace TWAINWorkingGroup
             }
 
             // All done...
+            //做完了...
             return (true);
         }
 
         /// <summary>
         /// Convert the contents of a image layout to a string that we can show in
         /// our simple GUI...
+        /// 将图像布局的内容转换为我们可以在简单GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twimagelayout">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twimagelayout">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string ImagelayoutToCsv(TW_IMAGELAYOUT a_twimagelayout)
         {
             try
@@ -3037,21 +3219,25 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert the contents of a string to an image layout structure...
+        /// 将字符串的内容转换为图像布局结构…
         /// </summary>
-        /// <param name="a_twimagelayout">A TWAIN structure</param>
-        /// <param name="a_szImagelayout">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twimagelayout">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szImagelayout">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         public static bool CsvToImagelayout(ref TW_IMAGELAYOUT a_twimagelayout, string a_szImagelayout)
         {
             // Init stuff...
+            //初始化东西...
             a_twimagelayout = default(TW_IMAGELAYOUT);
 
             // Build the string...
+            //构造字符串...
             try
             {
                 string[] asz = CSV.Parse(a_szImagelayout);
 
                 // Sort out the frame...
+                //排序出帧...
                 a_twimagelayout.Frame.Left.Whole = (short)double.Parse(asz[0]);
                 a_twimagelayout.Frame.Left.Frac = (ushort)((double.Parse(asz[0]) - (double)a_twimagelayout.Frame.Left.Whole) * 65536.0);
                 a_twimagelayout.Frame.Top.Whole = (short)double.Parse(asz[1]);
@@ -3062,6 +3248,7 @@ namespace TWAINWorkingGroup
                 a_twimagelayout.Frame.Bottom.Frac = (ushort)((double.Parse(asz[3]) - (double)a_twimagelayout.Frame.Bottom.Whole) * 65536.0);
 
                 // And now the counters...
+                //和当前的计数器...
                 a_twimagelayout.DocumentNumber = (uint)int.Parse(asz[4]);
                 a_twimagelayout.PageNumber = (uint)int.Parse(asz[5]);
                 a_twimagelayout.FrameNumber = (uint)int.Parse(asz[6]);
@@ -3073,15 +3260,17 @@ namespace TWAINWorkingGroup
             }
 
             // All done...
+            //完成...
             return (true);
         }
 
         /// <summary>
         /// Convert the contents of an image mem xfer structure to a string that
         /// we can show in our simple GUI...
+        /// 将图像mem xfer结构的内容转换为我们可以在简单GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twimagememxfer">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twimagememxfer">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string ImagememxferToCsv(TW_IMAGEMEMXFER a_twimagememxfer)
         {
             try
@@ -3108,21 +3297,26 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert the contents of a string to an image mem xfer structure...
+        /// 将字符串的内容转换为图像mem xfer结构…
         /// </summary>
-        /// <param name="a_twimagememxfer">A TWAIN structure</param>
-        /// <param name="a_szImagememxfer">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twimagememxfer">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szImagememxfer">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         public static bool CsvToImagememxfer(ref TW_IMAGEMEMXFER a_twimagememxfer, string a_szImagememxfer)
         {
             // Init stuff...
+            //初始化东西...
             a_twimagememxfer = default(TW_IMAGEMEMXFER);
 
+
             // Build the string...
+            //构造字符串
             try
             {
                 string[] asz = CSV.Parse(a_szImagememxfer);
 
                 // Sort out the structure...
+                //排序输出结构
                 a_twimagememxfer.Compression = ushort.Parse(CvtCapValueFromEnum(CAP.ICAP_COMPRESSION, asz[0]));
                 a_twimagememxfer.BytesPerRow = uint.Parse(asz[1]);
                 a_twimagememxfer.Columns = uint.Parse(asz[2]);
@@ -3147,9 +3341,10 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of a metrics structure to a string that
         /// we can show in our simple GUI...
+        /// 将度量结构的内容转换为一个字符串，我们可以在简单的GUI中显示该字符串……
         /// </summary>
-        /// <param name="a_twmetrics">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twmetrics">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string MetricsToCsv(TW_METRICS a_twmetrics)
         {
             try
@@ -3170,9 +3365,10 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of a patthru structure to a string that
         /// we can show in our simple GUI...
+        /// 将patthru结构的内容转换为我们可以在简单GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twpassthru">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twpassthru">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string PassthruToCsv(TW_PASSTHRU a_twpassthru)
         {
             try
@@ -3195,21 +3391,25 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert the contents of a string to a passthru structure...
+        /// 将字符串的内容转换为一个passthru结构…
         /// </summary>
-        /// <param name="a_twpassthru">A TWAIN structure</param>
-        /// <param name="a_szPassthru">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twpassthru">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szPassthru">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         public static bool CsvToPassthru(ref TW_PASSTHRU a_twpassthru, string a_szPassthru)
         {
             // Init stuff...
+            //初始化东西...
             a_twpassthru = default(TW_PASSTHRU);
 
             // Build the string...
+            //构造字符串...
             try
             {
                 string[] asz = CSV.Parse(a_szPassthru);
 
                 // Sort out the frame...
+                //排序输出帧...
                 a_twpassthru.pCommand = (IntPtr)UInt64.Parse(asz[0]);
                 a_twpassthru.CommandBytes = uint.Parse(asz[1]);
                 a_twpassthru.Direction = int.Parse(asz[2]);
@@ -3224,15 +3424,17 @@ namespace TWAINWorkingGroup
             }
 
             // All done...
+            //完成...
             return (true);
         }
 
         /// <summary>
         /// Convert the contents of a pending xfers structure to a string that
         /// we can show in our simple GUI...
+        /// 将挂起的xfers结构的内容转换为一个字符串，我们可以在简单的GUI中显示这个字符串……
         /// </summary>
-        /// <param name="a_twsetupfilexfer">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twsetupfilexfer">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string PendingxfersToCsv(TW_PENDINGXFERS a_twpendingxfers)
         {
             try
@@ -3251,21 +3453,25 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert the contents of a string to a pendingxfers structure...
+        /// 将字符串的内容转换为pendingxfers结构…
         /// </summary>
-        /// <param name="a_twpassthru">A TWAIN structure</param>
-        /// <param name="a_szPassthru">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twpassthru">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szPassthru">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         public static bool CsvToPendingXfers(ref TW_PENDINGXFERS a_twpendingxfers, string a_szPendingxfers)
         {
             // Init stuff...
+            //初始化东西...
             a_twpendingxfers = default(TW_PENDINGXFERS);
 
             // Build the string...
+            //构造字符串...
             try
             {
                 string[] asz = CSV.Parse(a_szPendingxfers);
 
                 // Sort out the frame...
+                //排序输出帧...
                 a_twpendingxfers.Count = ushort.Parse(asz[0]);
                 a_twpendingxfers.EOJ = uint.Parse(asz[1]);
             }
@@ -3276,15 +3482,17 @@ namespace TWAINWorkingGroup
             }
 
             // All done...
+            //完成...
             return (true);
         }
 
         /// <summary>
         /// Convert the contents of a setup file xfer structure to a string that
         /// we can show in our simple GUI...
+        /// 将安装文件xfer结构的内容转换为一个字符串，我们可以在简单的GUI中显示该字符串…
         /// </summary>
-        /// <param name="a_twsetupfilexfer">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twsetupfilexfer">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string SetupfilexferToCsv(TW_SETUPFILEXFER a_twsetupfilexfer)
         {
             try
@@ -3304,21 +3512,25 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert a string to a setupfilexfer...
+        /// 将字符串转换为setupfilexfer…
         /// </summary>
-        /// <param name="a_twsetupfilexfer">A TWAIN structure</param>
-        /// <param name="a_szSetupfilexfer">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twsetupfilexfer">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szSetupfilexfer">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         public static bool CsvToSetupfilexfer(ref TW_SETUPFILEXFER a_twsetupfilexfer, string a_szSetupfilexfer)
         {
             // Init stuff...
+            //初始化东西...
             a_twsetupfilexfer = default(TW_SETUPFILEXFER);
 
             // Build the string...
+            //构造字符串...
             try
             {
                 string[] asz = CSV.Parse(a_szSetupfilexfer);
 
                 // Sort out the values...
+                //排序输出值....
                 a_twsetupfilexfer.FileName.Set(asz[0]);
                 a_twsetupfilexfer.Format = (TWFF)ushort.Parse(CvtCapValueFromEnum(CAP.ICAP_IMAGEFILEFORMAT, asz[1]));
                 a_twsetupfilexfer.VRefNum = short.Parse(asz[2]);
@@ -3336,9 +3548,10 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of a setup mem xfer structure to a string that
         /// we can show in our simple GUI...
+        /// 将setup mem xfer结构的内容转换为一个字符串，我们可以在简单的GUI中显示这个字符串……
         /// </summary>
-        /// <param name="a_twsetupmemxfer">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twsetupmemxfer">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string SetupmemxferToCsv(TW_SETUPMEMXFER a_twsetupmemxfer)
         {
             try
@@ -3358,21 +3571,25 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert a string to a setupmemxfer...
+        /// 字符串转换为setupmemxfer…
         /// </summary>
-        /// <param name="a_twsetupfilexfer">A TWAIN structure</param>
-        /// <param name="a_szSetupfilexfer">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twsetupfilexfer">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szSetupfilexfer">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         public static bool CsvToSetupmemxfer(ref TW_SETUPMEMXFER a_twsetupmemxfer, string a_szSetupmemxfer)
         {
             // Init stuff...
+            //初始化东西...
             a_twsetupmemxfer = default(TW_SETUPMEMXFER);
 
             // Build the string...
+            //构建字符串...
             try
             {
                 string[] asz = CSV.Parse(a_szSetupmemxfer);
 
                 // Sort out the values...
+                //排序输出值...
                 a_twsetupmemxfer.MinBufSize = uint.Parse(asz[0]);
                 a_twsetupmemxfer.MaxBufSize = uint.Parse(asz[1]);
                 a_twsetupmemxfer.Preferred = uint.Parse(asz[2]);
@@ -3390,9 +3607,10 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of a status structure to a string that
         /// we can show in our simple GUI...
+        /// 将状态结构的内容转换为我们可以在简单GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twstatus">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twstatus">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string StatusToCsv(TW_STATUS a_twstatus)
         {
             try
@@ -3412,9 +3630,10 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of a statusutf8 structure to a string that
         /// we can show in our simple GUI...
+        /// 将statusutf8结构的内容转换为我们可以在简单GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twstatusutf8">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twstatusutf8">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public string Statusutf8ToCsv(TW_STATUSUTF8 a_twstatusutf8)
         {
             try
@@ -3436,16 +3655,20 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert a string to a twaindirect...
+        /// 将字符串转换为twaindirect…
         /// </summary>
-        /// <param name="a_twtwaindirect">A TWAIN structure</param>
-        /// <param name="a_szTwaindirect">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twtwaindirect">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szTwaindirect">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         public static bool CsvToTwaindirect(ref TW_TWAINDIRECT a_twtwaindirect, string a_szTwaindirect)
         {
             // Init stuff...
+            //初始化东西...
             a_twtwaindirect = default(TW_TWAINDIRECT);
+            
 
             // Build the string...
+            //构建字符串
             try
             {
                 long lTmp;
@@ -3492,9 +3715,10 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of a twaindirect structure to a string that
         /// we can show in our simple GUI...
+        /// 将twaindirect结构的内容转换为我们可以在简单GUI中显示的字符串……
         /// </summary>
-        /// <param name="a_twtwaindirect">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twtwaindirect">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string TwaindirectToCsv(TW_TWAINDIRECT a_twtwaindirect)
         {
             try
@@ -3518,9 +3742,10 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of a userinterface to a string that we can show in
         /// our simple GUI...
+        /// 将用户界面的内容转换为我们可以在简单GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_twuserinterface">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_twuserinterface">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string UserinterfaceToCsv(TW_USERINTERFACE a_twuserinterface)
         {
             try
@@ -3540,10 +3765,11 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert a string to a userinterface...
+        /// 将字符串转换为用户界面…
         /// </summary>
-        /// <param name="a_twuserinterface">A TWAIN structure</param>
-        /// <param name="a_szUserinterface">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twuserinterface">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szUserinterface">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         public bool CsvToUserinterface(ref TW_USERINTERFACE a_twuserinterface, string a_szUserinterface)
         {
             // Init stuff...
@@ -3593,9 +3819,10 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Convert the contents of a transfer group to a string that we can show in
         /// our simple GUI...
+        /// 将传输组的内容转换为我们可以在简单GUI中显示的字符串…
         /// </summary>
-        /// <param name="a_u32Xfergroup">A TWAIN structure</param>
-        /// <returns>A CSV string of the TWAIN structure</returns>
+        /// <param name="a_u32Xfergroup">A TWAIN structure 一个TWAIN结构</param>
+        /// <returns>A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</returns>
         public static string XfergroupToCsv(UInt32 a_u32Xfergroup)
         {
             try
@@ -3613,21 +3840,25 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert the contents of a string to a transfer group...
+        /// 将字符串的内容转换为一个传输组…
         /// </summary>
-        /// <param name="a_twcustomdsdata">A TWAIN structure</param>
-        /// <param name="a_szCustomdsdata">A CSV string of the TWAIN structure</param>
-        /// <returns>True if the conversion is successful</returns>
+        /// <param name="a_twcustomdsdata">A TWAIN structure 一个TWAIN结构</param>
+        /// <param name="a_szCustomdsdata">A CSV string of the TWAIN structure 一个CSV字符串的TWAIN结构</param>
+        /// <returns>True if the conversion is successful 如果转换成功，则为真</returns>
         public static bool CsvToXfergroup(ref UInt32 a_u32Xfergroup, string a_szXfergroup)
         {
             // Init stuff...
+            //初始化东西...
             a_u32Xfergroup = 0;
 
             // Build the string...
+            //构造字符串....
             try
             {
                 string[] asz = CSV.Parse(a_szXfergroup);
 
                 // Grab the values...
+                //抓住值...
                 a_u32Xfergroup = asz[0].ToLower().StartsWith("0x") ? Convert.ToUInt32(asz[0].Remove(0, 2), 16) : Convert.ToUInt32(asz[0], 16);
             }
             catch (Exception exception)
@@ -3637,15 +3868,17 @@ namespace TWAINWorkingGroup
             }
 
             // All done...
+            //做完...
             return (true);
         }
 
         /// <summary>
         /// This mess is what tries to turn numeric constants into something
         /// a bit more readable...
+        /// 这种混乱正是试图将数字常量转换成可读性更好的东西的原因……
         /// </summary>
-        /// <typeparam name="T">type for the conversion</typeparam>
-        /// <param name="a_szValue">value to convert</param>
+        /// <typeparam name="T">type for the conversion 转换的类型</typeparam>
+        /// <param name="a_szValue">value to convert 值转换</param>
         /// <returns></returns>
         private static string CvtCapValueToEnumHelper<T>(string a_szValue)
         {
@@ -3655,12 +3888,14 @@ namespace TWAINWorkingGroup
             string szCvt = "";
 
             // Adjust our value, as needed...
+            //根据需要调整我们的价值…
             if (a_szValue.StartsWith(typeof(T).Name + "_"))
             {
                 a_szValue = a_szValue.Substring((typeof(T).Name + "_").Length);
             }
 
             // Handle enums with negative numbers...
+            //处理带有负数的枚举…
             if (a_szValue.StartsWith("-"))
             {
                 if (Int32.TryParse(a_szValue, out i32))
@@ -3675,9 +3910,11 @@ namespace TWAINWorkingGroup
             }
 
             // Everybody else...
+            //其他人……
             else if (UInt32.TryParse(a_szValue, out u32))
             {
                 // Handle bool...
+                //处理布尔值...
                 if (typeof(T) == typeof(bool))
                 {
                     if ((a_szValue == "1") || (a_szValue.ToLowerInvariant() == "true"))
@@ -3688,6 +3925,7 @@ namespace TWAINWorkingGroup
                 }
 
                 // Handle DAT (which is a weird one)..
+                //处理DAT(这是一个奇怪的)..
                 else if (typeof(T) == typeof(DAT))
                 {
                     UInt32 u32Dg = u32 >> 16;
@@ -3700,9 +3938,11 @@ namespace TWAINWorkingGroup
                 }
 
                 // Everybody else is on their own...
+                //每个人都要靠自己……
                 else
                 {
                     // mono hurls on this, .net doesn't, so gonna help...
+                    //mono会对这个问题进行抨击，而.net不会，所以会有帮助…
                     switch (a_szValue)
                     {
                         default: break;
@@ -3715,15 +3955,18 @@ namespace TWAINWorkingGroup
                 }
 
                 // Check to see if we changed anything...
+                //看看我们是否有什么改变…
                 szCvt = t.ToString();
                 if (szCvt != u32.ToString())
                 {
                     // CAP is in its final form...
+                    //CAP的最终版本…
                     if (typeof(T) == typeof(CAP))
                     {
                         return (szCvt);
                     }
                     // Everybody else needs the name decoration removed...
+                    //每个人都需要去掉名字装饰…
                     else
                     {
                         return (typeof(T).ToString().Replace("TWAINWorkingGroup.TWAIN+", "") + "_" + szCvt);
@@ -3731,6 +3974,7 @@ namespace TWAINWorkingGroup
                 }
 
                 // We're probably a custom value...
+                //我们可能是一个自定义值…
                 else
                 {
                     return (string.Format("0x{0:X}", u32));
@@ -3738,43 +3982,50 @@ namespace TWAINWorkingGroup
             }
 
             // We're a string...
+            //我们是一个字符串…
             return (a_szValue);
         }
 
         /// <summary>
         /// This mess is what tries to turn readable stuff into numeric constants...
+        /// 这种混乱试图将可读的东西转换成数字常量……
         /// </summary>
-        /// <typeparam name="T">type for the conversion</typeparam>
-        /// <param name="a_szValue">value to convert</param>
+        /// <typeparam name="T">type for the conversion 转换的类型</typeparam>
+        /// <param name="a_szValue">value to convert 值转换</param>
         /// <returns></returns>
         private static string CvtCapValueFromEnumHelper<T>(string a_szValue)
         {
             // We can figure this one out on our own...
+            //我们可以自己解决这个问题…
             if ((typeof(T).Name == "bool") || (typeof(T).Name == "Boolean"))
             {
                 return (((a_szValue.ToLowerInvariant() == "true") || (a_szValue == "1")) ? "1" : "0");
             }
 
             // Look for the enum prefix...
+            //查找枚举的前缀…
             if (a_szValue.ToLowerInvariant().StartsWith(typeof(T).Name.ToLowerInvariant() + "_"))
             {
                 return (a_szValue.Substring((typeof(T).Name + "_").Length));
             }
 
             // Er...
+            //呃...
             return (a_szValue);
         }
 
         /// <summary>
         /// This mess is what tries to turn readable stuff into numeric constants...
+        /// 这种混乱试图将可读的东西转换成数字常量……
         /// </summary>
-        /// <typeparam name="T">type for the conversion</typeparam>
-        /// <param name="a_szValue">value to convert</param>
+        /// <typeparam name="T">type for the conversion 转换的类型</typeparam>
+        /// <param name="a_szValue">value to convert 值转换</param>
         /// <returns></returns>
         private static string CvtCapValueFromTwlg(string a_szValue)
         {
             // mono goes "hork", probably because the enum is wackadoodle, this
             // does work on .net, but what'cha gonna do?
+            //mono发出“呕吐”的声音，可能是因为枚举是wackadoodle，这在.net上确实有效，但是你会做什么呢?
             if (a_szValue.ToUpperInvariant().StartsWith("TWLG_"))
             {
                 switch (a_szValue.ToUpperInvariant().Substring(5))
@@ -3913,14 +4164,16 @@ namespace TWAINWorkingGroup
             }
 
             // Er...
+            //呃...
             return (a_szValue);
         }
 
         /// <summary>
         /// Convert a value to the 'friendly' name, based on the capability...
+        /// 根据功能将值转换为“friendly”名称…
         /// </summary>
-        /// <param name="a_cap">capability driving the conversion</param>
-        /// <param name="szValue">value to convert</param>
+        /// <param name="a_cap">capability driving the conversion 转换驱动能力</param>
+        /// <param name="szValue">value to convert 值转换</param>
         /// <returns></returns>
         public static string CvtCapValueToEnum(CAP a_cap, string a_szValue)
         {
@@ -4096,27 +4349,31 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert a 'friendly' name to a numeric value...
+        /// 将“友好”的名称转换为数值…
         /// </summary>
-        /// <param name="a_cap">capability driving the conversion</param>
-        /// <param name="szValue">value to convert</param>
+        /// <param name="a_cap">capability driving the conversion 转换驱动能力</param>
+        /// <param name="szValue">value to convert 值转换</param>
         /// <returns></returns>
         public static string CvtCapValueFromEnum(CAP a_cap, string a_szValue)
         {
             int ii;
 
             // Turn hex into a decimal...
+            //把十六进制变成小数……
             if (a_szValue.ToLowerInvariant().StartsWith("0x"))
             {
                 return (int.Parse(a_szValue.Substring(2), NumberStyles.HexNumber).ToString());
             }
 
             // Skip numbers...
+            //跳过数字……
             if (int.TryParse(a_szValue, out ii))
             {
                 return (a_szValue);
             }
 
             // Process text...
+            //处理文本…
             switch (a_cap)
             {
                 default: return (a_szValue);
@@ -4294,22 +4551,26 @@ namespace TWAINWorkingGroup
         // Public DSM_Entry calls, most of the DSM_Entry calls are in here.  Their
         // main contribution is to make sure that they're running within the right
         // thread, but they also include the state transitions...
+        //公共DSM_Entry调用，大多数DSM_Entry调用都在这里。
+        //它们的主要贡献是确保它们在正确的线程中运行，但是它们还包括状态转换……
         ///////////////////////////////////////////////////////////////////////////////
         #region Public DSM_Entry calls...
 
         /// <summary>
         /// Generic DSM when the dest must be zero (null)...
+        /// 当dest必须为零(null)时，一般DSM…
         /// </summary>
-        /// <param name="a_dg">Data group</param>
-        /// <param name="a_dat">Data argument type</param>
-        /// <param name="a_msg">Operation</param>
-        /// <param name="a_twmemref">Pointer to data</param>
-        /// <returns>TWAIN status</returns>
+        /// <param name="a_dg">Data group 数据组</param>
+        /// <param name="a_dat">Data argument type 数据参数类型</param>
+        /// <param name="a_msg">Operation 操作</param>
+        /// <param name="a_twmemref">Pointer to data 指针指向的数据</param>
+        /// <returns>TWAIN status TWAIN状态</returns>
         public STS DsmEntryNullDest(DG a_dg, DAT a_dat, MSG a_msg, IntPtr a_twmemref)
         {
             STS sts;
 
             // Submit the work to the TWAIN thread...
+            //将工作提交给TWAIN线程
             if ((m_threadTwain != null) && (m_threadTwain.ManagedThreadId != Thread.CurrentThread.ManagedThreadId))
             {
                 lock (m_lockTwain)
@@ -11967,6 +12228,7 @@ namespace TWAINWorkingGroup
         ///////////////////////////////////////////////////////////////////////////////
         // Public Definitions, this is where you get the callback definitions for
         // handling device events and scanning...
+        //公共定义，这是你获得回调定义处理设备事件和扫描…
         ///////////////////////////////////////////////////////////////////////////////
         #region Public Definitions...
 
@@ -12012,6 +12274,7 @@ namespace TWAINWorkingGroup
         // Private Definitions (TIFF): this stuff should have been here all along to
         // make it easier to share.  It's only needed when writing out files from
         // DAT_IMAGEMEMXFER data.
+        //私有定义(TIFF):这些东西应该一直在这里，以便更容易地共享。只有在从DAT_IMAGEMEMXFER数据中写入文件时才需要它。
         ///////////////////////////////////////////////////////////////////////////////
         #region Private Definitions (TIFF)...
 
@@ -12320,13 +12583,15 @@ namespace TWAINWorkingGroup
 
         ///////////////////////////////////////////////////////////////////////////////
         // Private Functions, the main thread is in here...
+        //私有函数，主线程在这里…
         ///////////////////////////////////////////////////////////////////////////////
         #region Private Functions...
 
         /// <summary>
         /// Cleanup...
+        /// 清理...
         /// </summary>
-        /// <param name="a_blDisposing">true if we need to clean up managed resources</param>
+        /// <param name="a_blDisposing">true if we need to clean up managed resources 如果我们需要清理管理资源，这是正确的</param>
         [SecurityPermissionAttribute(SecurityAction.LinkDemand, Flags = SecurityPermissionFlag.UnmanagedCode)]
         internal void Dispose(bool a_blDisposing)
         {
@@ -12381,6 +12646,7 @@ namespace TWAINWorkingGroup
         /// This is our main loop where we issue commands to the TWAIN
         /// object on behalf of the caller.  This function runs in its
         /// own thread...
+        /// 这是我们的主循环，在这里我们代表调用者向TWAIN对象发出命令。这个函数在它自己的线程中运行…
         /// </summary>
         private void Main()
         {
@@ -12390,27 +12656,33 @@ namespace TWAINWorkingGroup
             ThreadData threaddata;
 
             // Okay, we're ready to run...
+            //好了，我们准备好了……
             m_autoreseteventThreadStarted.Set();
             Log.Info("main>>> thread started...");
 
             //
             // We have three different ways of driving the TWAIN driver...
+            //我们有三种不同的驱动方式。
             //
             // First, we can accept a direct command from the user for commands
             // that move from state 2 to state 4, and for any commands that are
             // issued in state 4.
+            //首先，对于从状态2移动到状态4的命令，以及以状态4发出的任何命令，我们可以接受来自用户的直接命令。
             //
             // Second, we have a scanning callback function, that operates when
             // we are transferring images; this means that we don't want the
             // user making those calls directly.
+            //第二，我们有一个扫描回调函数，它在我们传输图像时起作用;这意味着我们不希望用户直接进行那些调用。
             //
             // Third, we have a rollback function, that allows the calls to
             // move anywhere from state 7 to state 2; what this means is that we
             // don't want the user making those calls directly.
+            //第三，我们有一个回滚函数，它允许调用从状态7移动到状态2;这意味着我们不希望用户直接进行那些调用。
             //
             // The trick is to move smoothly between these three styles of
             // access, and what we find is that the first and second are pretty
             // easy to do, but the third one is tricky...
+            //技巧是在这三种访问方式之间流畅地切换，我们发现第一种和第二种访问方式非常容易，但是第三种访问方式非常棘手……
             //
             blRunning = true;
             blScanning = false;
@@ -12418,10 +12690,12 @@ namespace TWAINWorkingGroup
             {
                 // Get the next item, if we don't have anything, then we may
                 // need to wait...
+                //获取下一个项，如果我们没有任何东西，那么我们可能需要等待……
                 if (!m_twaincommand.GetNext(out lIndex, out threaddata))
                 {
                     // If we're not scanning, then wait for a command to wake
                     // us up...
+                    //如果我们不扫描，那么等待命令来唤醒我们……
                     if (!blScanning)
                     {
                         CallerToThreadWaitOne();
@@ -12430,6 +12704,7 @@ namespace TWAINWorkingGroup
                 }
 
                 // Leave...now...
+                //现在离开……
                 if (threaddata.blExitThread)
                 {
                     m_twaincommand.Complete(lIndex, threaddata);
@@ -12440,6 +12715,7 @@ namespace TWAINWorkingGroup
                 }
 
                 // Process device events...
+                //过程设备的事件……
                 if (IsMsgDeviceEvent())
                 {
                     m_deviceeventcallback();
@@ -12448,9 +12724,11 @@ namespace TWAINWorkingGroup
                 // We don't have a direct command, it's either a rollback request,
                 // a request to run the scan callback, or its a false positive,
                 // which we can safely ignore...
+                //我们没有直接的命令，它要么是一个回滚请求，一个运行扫描回调的请求，要么是一个假阳性(假真实的)，我们可以安全地忽略它……
                 if (threaddata.dat == default(DAT))
                 {
                     // The caller has asked us to rollback the state machine...
+                    //调用者要求我们回滚状态机……
                     if (threaddata.blRollback)
                     {
                         threaddata.blRollback = false;
@@ -12465,6 +12743,7 @@ namespace TWAINWorkingGroup
                     }
 
                     // Callback stuff here between MSG_ENABLEDS* and MSG_DISABLEDS...
+                    //在MSG_ENABLEDS*和MSG_DISABLEDS之间的回调内容…
                     else if (GetState() >= STATE.S5)
                     {
                         m_scancallback(false);
@@ -12472,22 +12751,27 @@ namespace TWAINWorkingGroup
                     }
 
                     // We're done scanning...
+                    //完成了扫描……
                     else
                     {
                         blScanning = false;
                     }
 
                     // Tag the command as complete...
+                    //将命令标记为完成…
                     m_twaincommand.Complete(lIndex, threaddata);
 
                     // Go back to the top...
+                    //回到上面去……
                     continue;
                 }
 
                 // Otherwise, directly issue the command...
+                //否则，直接发出命令…
                 switch (threaddata.dat)
                 {
                     // Unrecognized DAT...
+                    //未识别的 DAT...
                     default:
                         if (m_state < STATE.S4)
                         {
@@ -12500,96 +12784,115 @@ namespace TWAINWorkingGroup
                         break;
 
                     // Audio file xfer...
+                    //音频文件传递……
                     case DAT.AUDIOFILEXFER:
                         threaddata.sts = DatAudiofilexfer(threaddata.dg, threaddata.msg);
                         break;
 
                     // Audio info...
+                    //音频信息...
                     case DAT.AUDIOINFO:
                         threaddata.sts = DatAudioinfo(threaddata.dg, threaddata.msg, ref threaddata.twaudioinfo);
                         break;
 
                     // Audio native xfer...
+                    //音频本地传递……
                     case DAT.AUDIONATIVEXFER:
                         threaddata.sts = DatAudionativexfer(threaddata.dg, threaddata.msg, ref threaddata.intptrAudio);
                         break;
 
                     // Negotiation commands...
+                    //谈判的命令……
                     case DAT.CAPABILITY:
                         threaddata.sts = DatCapability(threaddata.dg, threaddata.msg, ref threaddata.twcapability);
                         break;
 
                     // CIE color...
+                    //CIE 颜色...
                     case DAT.CIECOLOR:
                         threaddata.sts = DatCiecolor(threaddata.dg, threaddata.msg, ref threaddata.twciecolor);
                         break;
 
                     // Snapshots...
+                    //快照……
                     case DAT.CUSTOMDSDATA:
                         threaddata.sts = DatCustomdsdata(threaddata.dg, threaddata.msg, ref threaddata.twcustomdsdata);
                         break;
 
                     // Functions...
+                    //功能……
                     case DAT.ENTRYPOINT:
                         threaddata.sts = DatEntrypoint(threaddata.dg, threaddata.msg, ref threaddata.twentrypoint);
                         break;
 
                     // Image meta data...
+                    //图像元数据……
                     case DAT.EXTIMAGEINFO:
                         threaddata.sts = DatExtimageinfo(threaddata.dg, threaddata.msg, ref threaddata.twextimageinfo);
                         break;
 
                     // Filesystem...
+                    //文件系统
                     case DAT.FILESYSTEM:
                         threaddata.sts = DatFilesystem(threaddata.dg, threaddata.msg, ref threaddata.twfilesystem);
                         break;
 
                     // Filter...
+                    //过滤器...
                     case DAT.FILTER:
                         threaddata.sts = DatFilter(threaddata.dg, threaddata.msg, ref threaddata.twfilter);
                         break;
 
                     // Grayscale...
+                    //灰度…
                     case DAT.GRAYRESPONSE:
                         threaddata.sts = DatGrayresponse(threaddata.dg, threaddata.msg, ref threaddata.twgrayresponse);
                         break;
 
                     // ICC color profiles...
+                    //ICC颜色配置文件…
                     case DAT.ICCPROFILE:
                         threaddata.sts = DatIccprofile(threaddata.dg, threaddata.msg, ref threaddata.twmemory);
                         break;
 
                     // Enumerate and Open commands...
+                    //枚举并打开命令…
                     case DAT.IDENTITY:
                         threaddata.sts = DatIdentity(threaddata.dg, threaddata.msg, ref threaddata.twidentity);
                         break;
 
                     // More meta data...
+                    //更多的元数据……
                     case DAT.IMAGEINFO:
                         threaddata.sts = DatImageinfo(threaddata.dg, threaddata.msg, ref threaddata.twimageinfo);
                         break;
 
                     // File xfer...
+                    //文件传递……
                     case DAT.IMAGEFILEXFER:
                         threaddata.sts = DatImagefilexfer(threaddata.dg, threaddata.msg);
                         break;
 
                     // Image layout commands...
+                    //图片布局命令……
                     case DAT.IMAGELAYOUT:
                         threaddata.sts = DatImagelayout(threaddata.dg, threaddata.msg, ref threaddata.twimagelayout);
                         break;
 
                     // Memory file transfer (yes, we're using TW_IMAGEMEMXFER, that's okay)...
+                    //内存文件传输(是的，我们使用的是TW_IMAGEMEMXFER，这没问题)…
                     case DAT.IMAGEMEMFILEXFER:
                         threaddata.sts = DatImagememfilexfer(threaddata.dg, threaddata.msg, ref threaddata.twimagememxfer);
                         break;
 
                     // Memory transfer...
+                    //记忆转移……
                     case DAT.IMAGEMEMXFER:
                         threaddata.sts = DatImagememxfer(threaddata.dg, threaddata.msg, ref threaddata.twimagememxfer);
                         break;
 
                     // Native transfer...
+                    //本地传输…
                     case DAT.IMAGENATIVEXFER:
                         if (threaddata.blUseBitmapHandle)
                         {
@@ -12602,31 +12905,37 @@ namespace TWAINWorkingGroup
                         break;
 
                     // JPEG compression...
+                    //JPEG压缩……
                     case DAT.JPEGCOMPRESSION:
                         threaddata.sts = DatJpegcompression(threaddata.dg, threaddata.msg, ref threaddata.twjpegcompression);
                         break;
 
                     // Metrics...
+                    //指标……
                     case DAT.METRICS:
                         threaddata.sts = DatMetrics(threaddata.dg, threaddata.msg, ref threaddata.twmetrics);
                         break;
 
                     // Palette8...
+                    //面板8…
                     case DAT.PALETTE8:
                         threaddata.sts = DatPalette8(threaddata.dg, threaddata.msg, ref threaddata.twpalette8);
                         break;
 
                     // DSM commands...
+                    //DSM 命令...
                     case DAT.PARENT:
                         threaddata.sts = DatParent(threaddata.dg, threaddata.msg, ref threaddata.intptrHwnd);
                         break;
 
                     // Raw commands...
+                    //原始的命令……
                     case DAT.PASSTHRU:
                         threaddata.sts = DatPassthru(threaddata.dg, threaddata.msg, ref threaddata.twpassthru);
                         break;
 
                     // Pending transfers...
+                    //等待转移. .
                     case DAT.PENDINGXFERS:
                         threaddata.sts = DatPendingxfers(threaddata.dg, threaddata.msg, ref threaddata.twpendingxfers);
                         break;
@@ -12637,31 +12946,37 @@ namespace TWAINWorkingGroup
                         break;
 
                     // Setup file transfer...
+                    //设置文件传输…
                     case DAT.SETUPFILEXFER:
                         threaddata.sts = DatSetupfilexfer(threaddata.dg, threaddata.msg, ref threaddata.twsetupfilexfer);
                         break;
 
                     // Get memory info...
+                    //获取内存信息…
                     case DAT.SETUPMEMXFER:
                         threaddata.sts = DatSetupmemxfer(threaddata.dg, threaddata.msg, ref threaddata.twsetupmemxfer);
                         break;
 
                     // Status...
+                    //状态....
                     case DAT.STATUS:
                         threaddata.sts = DatStatus(threaddata.dg, threaddata.msg, ref threaddata.twstatus);
                         break;
 
                     // Status text...
+                    //状态文本...
                     case DAT.STATUSUTF8:
                         threaddata.sts = DatStatusutf8(threaddata.dg, threaddata.msg, ref threaddata.twstatusutf8);
                         break;
 
                     // TWAIN Direct...
+                    //TWAIN 直接
                     case DAT.TWAINDIRECT:
                         threaddata.sts = DatTwaindirect(threaddata.dg, threaddata.msg, ref threaddata.twtwaindirect);
                         break;
 
                     // Scan and GUI commands...
+                    //扫描和GUI命令…
                     case DAT.USERINTERFACE:
                         threaddata.sts = DatUserinterface(threaddata.dg, threaddata.msg, ref threaddata.twuserinterface);
                         if (threaddata.sts == STS.SUCCESS)
@@ -12681,17 +12996,20 @@ namespace TWAINWorkingGroup
                         break;
 
                     // Transfer group...
+                    //传输组……
                     case DAT.XFERGROUP:
                         threaddata.sts = DatXferGroup(threaddata.dg, threaddata.msg, ref threaddata.twuint32);
                         break;
                 }
 
                 // Report to the caller that we're done, and loop back up for another...
+                //向调用者报告我们已经完成，然后循环执行另一个…
                 m_twaincommand.Complete(lIndex, threaddata);
                 ThreadToCallerSet();
             }
 
             // Some insurance to make sure we loosen up the caller...
+            //一些保险，以确保我们放开调用者…
             m_scancallback(true);
             ThreadToCallerSet();
             return;
@@ -12699,27 +13017,33 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Use an event message to set the appropriate flags...
+        /// 使用事件消息设置适当的标志…
         /// </summary>
-        /// <param name="a_msg">Message to process</param>
+        /// <param name="a_msg">Message to process 消息处理</param>
         private void ProcessEvent(MSG a_msg)
         {
             switch (a_msg)
             {
                 // Do nothing...
+                //什么都不做……
                 default:
                     break;
 
                 // If we're in state 5, then go to state 6...
+                //如果我们在状态5,则跳到状态6...
                 case MSG.XFERREADY:
                     if (m_blAcceptXferReady)
                     {
                         // Protect us from driver's that spam this event...
+                        //保护我们免受设备的垃圾邮件这个事件冲击…
                         m_blAcceptXferReady = false;
 
                         // We're still processing DAT_USERINTERFACE, that's a kick the
                         // teeth.  We can't wait for it here, so launch a thread to wait
                         // for it to finish, so we can go to the next state as soon as
                         // it's done...
+                        //我们仍然在处理DAT_USERINTERFACE，这是一个难题。
+                        //我们不能在这里等待它，所以启动一个线程等待它完成，这样我们可以在它完成后立即进入下一个状态……
                         if (m_blRunningDatUserinterface)
                         {
                             m_threadRunningDatUserinterface = new Thread(RunningDatUserinterface);
@@ -12728,11 +13052,13 @@ namespace TWAINWorkingGroup
                         }
 
                         // Change our state...
+                        //处理我们的状态...
                         m_state = STATE.S6;
                         m_blIsMsgxferready = true;
                         CallerToThreadSet();
 
                         // Kick off the scan engine...
+                        //启动扫描引擎…
                         if (m_scancallback != null)
                         {
                             m_scancallback(false);
@@ -12741,6 +13067,7 @@ namespace TWAINWorkingGroup
                     break;
 
                 // The cancel button was pressed...
+                //取消按钮被按下了…
                 case MSG.CLOSEDSREQ:
                     m_blIsMsgclosedsreq = true;
                     CallerToThreadSet();
@@ -12751,6 +13078,7 @@ namespace TWAINWorkingGroup
                     break;
 
                 // The OK button was pressed...
+                //OK按钮被按下了…
                 case MSG.CLOSEDSOK:
                     m_blIsMsgclosedsok = true;
                     CallerToThreadSet();
@@ -12761,6 +13089,7 @@ namespace TWAINWorkingGroup
                     break;
 
                 // A device event arrived...
+                //一个设备事件到达…
                 case MSG.DEVICEEVENT:
                     m_blIsMsgdeviceevent = true;
                     CallerToThreadSet();
@@ -12770,27 +13099,32 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// As long as DAT_USERINTERFACE is running we'll spin here...
+        /// //只要DAT_USERINTERFACE还在运行，我们就会在这里旋转…
         /// </summary>
         private void RunningDatUserinterface()
         {
             // Wait until something kicks us out...
+            //等到有什么东西把我们踢出去……
             while ((m_state >= STATE.S4) && m_blRunningDatUserinterface)
             {
                 Thread.Sleep(20);
             }
 
             // If we never made it to state 5, then bail...
+            //如果我们没能到达状态5，那就离开…
             if (m_state < STATE.S5)
             {
                 return;
             }
 
             // Bump up our state...
+            //提升我们的状态...
             m_state = STATE.S6;
             m_blIsMsgxferready = true;
             CallerToThreadSet();
 
             // Kick off the scan engine...
+            //启动扫描引擎…
             if (m_scancallback != null)
             {
                 m_scancallback(false);
@@ -12800,8 +13134,9 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// TWAIN needs help, if we want it to run stuff in our main
         /// UI thread...
+        /// TWAIN需要帮助，如果我们想让它在我们的主UI线程运行东西…
         /// </summary>
-        /// <param name="code">the code to run</param>
+        /// <param name="code">the code to run 要运行的代码</param>
         private void RunInUiThread(Action a_action)
         {
             m_runinuithreaddelegate(a_action);
@@ -12809,6 +13144,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// The caller is asking the thread to wake-up...
+        /// 调用者要求线程唤醒…
         /// </summary>
         private void CallerToThreadSet()
         {
@@ -12817,6 +13153,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// The thread is waiting for the caller to wake it...
+        /// 线程正在等待调用者唤醒它……
         /// </summary>
         private bool CallerToThreadWaitOne()
         {
@@ -12825,16 +13162,18 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// The common start to every capability csv...
+        /// 每个功能的公共起点csv…
         /// </summary>
-        /// <param name="a_cap">Capability number</param>
-        /// <param name="a_twon">Container</param>
-        /// <param name="a_twty">Data type</param>
+        /// <param name="a_cap">Capability number 能力数量</param>
+        /// <param name="a_twon">Container 容器</param>
+        /// <param name="a_twty">Data type 数据类型</param>
         /// <returns></returns>
         private CSV Common(CAP a_cap, TWON a_twon, TWTY a_twty)
         {
             CSV csv = new CSV();
 
             // Add the capability...
+            //添加的功能…
             string szCap = a_cap.ToString();
             if (!szCap.Contains("_"))
             {
@@ -12842,11 +13181,13 @@ namespace TWAINWorkingGroup
             }
 
             // Build the CSV...
+            //构建CSV……
             csv.Add(szCap);
             csv.Add("TWON_" + a_twon);
             csv.Add("TWTY_" + a_twty);
 
             // And return it...
+            //和返回它...
             return (csv);
         }
 
@@ -12855,8 +13196,9 @@ namespace TWAINWorkingGroup
         /// we can get many of these.  We don't have to worry about a
         /// race condition, because the caller is expected to drain the
         /// driver of all events.
+        /// 设备事件是否已经到达?一定要清除它，因为我们可以得到很多。我们不需要担心竞态条件，因为调用方将耗尽驱动程序的所有事件……
         /// </summary>
-        /// <returns>True if a device event is pending</returns>
+        /// <returns>True if a device event is pending 如果设备事件挂起，则为真</returns>
         private bool IsMsgDeviceEvent()
         {
             if (m_blIsMsgdeviceevent)
@@ -12869,6 +13211,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// The thread is asking the caller to wake-up...
+        /// 线程要求调用者唤醒…
         /// </summary>
         private void ThreadToCallerSet()
         {
@@ -12877,8 +13220,9 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// The caller is waiting for the thread to wake it...
+        /// 调用者正在等待线程唤醒它……
         /// </summary>
-        /// <returns>Result of the wait</returns>
+        /// <returns>Result of the wait 等待的结果</returns>
         private bool ThreadToCallerWaitOne()
         {
             return (m_autoreseteventThread.WaitOne());
@@ -12886,6 +13230,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// The thread is asking the rollback to wake-up...
+        /// 线程要求回滚到wake-up…
         /// </summary>
         private void ThreadToRollbackSet()
         {
@@ -12894,6 +13239,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// The rollback is waiting for the thread to wake it...
+        /// 回滚正在等待线程唤醒它……
         /// </summary>
         /// <returns>Result of the wait</returns>
         private bool ThreadToRollbackWaitOne()
@@ -12903,16 +13249,17 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Automatically collect the condition code for TWRC_FAILURE's...
+        /// 自动收集TWRC_FAILURE的条件代码…
         /// </summary>
-        /// <param name="a_sts">The return code from the last operation</param>
-        /// <param name="a_sts">The return code from the last operation</param>
-        /// <returns>The final statue return</returns>
+        /// <param name="a_sts">The return code from the last operation 最后一个操作的返回代码</param>
+        /// <returns>The final status return 最终的状态返回</returns>
         private STS AutoDatStatus(STS a_sts)
         {
             STS sts;
             TW_STATUS twstatus = new TW_STATUS();
 
             // Automatic system is off, or the status is not TWRC_FAILURE, so just return the status we got...
+            //自动系统关闭，或者状态不是TWRC_FAILURE，所以返回我们得到的状态…
             if (!m_blAutoDatStatus || (a_sts != STS.FAILURE))
             {
                 return (a_sts);
@@ -12922,6 +13269,7 @@ namespace TWAINWorkingGroup
             if (ms_platform == Platform.WINDOWS)
             {
                 // Issue the command...
+                //发出该命令……
                 try
                 {
                     if (m_blUseLegacyDSM)
@@ -12950,6 +13298,7 @@ namespace TWAINWorkingGroup
                 catch (Exception exception)
                 {
                     // The driver crashed...
+                    //设备崩溃……
                     Log.Error("crash - " + exception.Message);
                     TWAINWorkingGroup.Log.Error("Driver crash...");
                     return (STS.BUMMER);
@@ -12960,6 +13309,7 @@ namespace TWAINWorkingGroup
             else if (ms_platform == Platform.LINUX)
             {
                 // Issue the command...
+                //发出该命令……
                 try
                 {
                     if (m_blFoundLatestDsm64 && (m_linuxdsm == LinuxDsm.IsLatestDsm))
@@ -13004,6 +13354,7 @@ namespace TWAINWorkingGroup
                 catch (Exception exception)
                 {
                     // The driver crashed...
+                    //设备崩溃……
                     Log.Error("crash - " + exception.Message);
                     TWAINWorkingGroup.Log.Error("Driver crash...");
                     return (STS.BUMMER);
@@ -13011,9 +13362,11 @@ namespace TWAINWorkingGroup
             }
 
             // Mac OS X, which has to be different...
+            //Mac OS X，必须与众不同……
             else if (ms_platform == Platform.MACOSX)
             {
                 // Issue the command...
+                //发出该命令……
                 try
                 {
                     if (GetState() <= STATE.S3)
@@ -13028,6 +13381,7 @@ namespace TWAINWorkingGroup
                 catch (Exception exception)
                 {
                     // The driver crashed...
+                    //  //设备崩溃……
                     Log.Error("crash - " + exception.Message);
                     TWAINWorkingGroup.Log.Error("Driver crash...");
                     return (STS.BUMMER);
@@ -13035,6 +13389,7 @@ namespace TWAINWorkingGroup
             }
 
             // Uh-oh...
+            //啊哦……
             else
             {
                 TWAINWorkingGroup.Log.Assert("Unsupported platform..." + ms_platform);
@@ -13042,19 +13397,21 @@ namespace TWAINWorkingGroup
             }
 
             // Uh-oh, the status call failed...
+            //啊哦，状态调用失败了……
             if (sts != STS.SUCCESS)
             {
                 return (a_sts);
             }
 
             // All done...
+            //做完
             return ((STS)(STSCC + twstatus.ConditionCode));
         }
 
         /// <summary>
         /// 32-bit or 64-bit...
         /// </summary>
-        /// <returns>Number of bits in the machine word for this process</returns>
+        /// <returns>Number of bits in the machine word for this process 用于此过程的机器字中的位数</returns>
         public static int GetMachineWordBitSize()
         {
             return ((IntPtr.Size == 4) ? 32 : 64);
@@ -13062,17 +13419,21 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Quick access to our platform id...
+        /// 快速访问我们的平台id…
         /// </summary>
         /// <returns></returns>
         public static Platform GetPlatform()
         {
             // First pass...
+            //第一遍. .
             if (ms_blFirstPassGetPlatform)
             {
                 // Dont'c come in here again...
+                //别再进来了。
                 ms_blFirstPassGetPlatform = false;
 
                 // We're Windows...
+                //我们是windows
                 if (Environment.OSVersion.ToString().Contains("Microsoft Windows"))
                 {
                     ms_platform = Platform.WINDOWS;
@@ -13080,6 +13441,7 @@ namespace TWAINWorkingGroup
                 }
 
                 // We're Mac OS X (this has to come before LINUX!!!)...
+                //我们是Mac OS X (这必须在LINUX之前实现)
                 else if (Directory.Exists("/Library/Application Support"))
                 {
                     ms_platform = Platform.MACOSX;
@@ -13087,6 +13449,7 @@ namespace TWAINWorkingGroup
                 }
 
                 // We're Linux...
+                //我们是Linux...
                 else if (Environment.OSVersion.ToString().Contains("Unix"))
                 {
                     string szProcessor = "";
@@ -13111,7 +13474,7 @@ namespace TWAINWorkingGroup
                     }
                     catch
                     {
-                        Console.Out.WriteLine("Oh dear, this isn't good...where's uname?");
+                        Console.Out.WriteLine("Oh dear, this isn't good...where's uname?"); //哦，天哪，这不太好……uname在哪?
                     }
                     if (szProcessor.Contains("mips64"))
                     {
@@ -13124,6 +13487,7 @@ namespace TWAINWorkingGroup
                 }
 
                 // We have a problem, Log will throw for us...
+                //我们有麻烦了，日志会抛出给我们…
                 else
                 {
                     ms_platform = Platform.UNKNOWN;
@@ -13133,43 +13497,49 @@ namespace TWAINWorkingGroup
             }
 
             // All done...
+            //做完
             return (ms_platform);
         }
 
         /// <summary>
         /// Quick access to our processor id...
+        /// 快速访问我们的处理器id…
         /// </summary>
         /// <returns></returns>
         public static Processor GetProcessor()
         {
             // First pass...
+            //第一遍...
             if (ms_blFirstPassGetPlatform)
             {
                 GetPlatform();
             }
 
             // All done...
+            //做完....
             return (ms_processor);
         }
 
         /// <summary>
         /// Convert the contents of a capability to a string that we can show in
         /// our simple GUI...
+        /// 将功能的内容转换为一个字符串，我们可以在简单的GUI中显示该字符串…
         /// </summary>
-        /// <param name="a_twty">Data type</param>
-        /// <param name="a_intptr">Pointer to the data</param>
-        /// <param name="a_iIndex">Index of the item in the data</param>
-        /// <returns>Data in CSV form</returns>
+        /// <param name="a_twty">Data type数据类型</param>
+        /// <param name="a_intptr">Pointer to the data 数据指针</param>
+        /// <param name="a_iIndex">Index of the item in the data 数据项的索引</param>
+        /// <returns>Data in CSV form CSV格式的数据</returns>
         [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust", Unrestricted = false)]
         public string GetIndexedItem(TW_CAPABILITY a_twcapability, TWTY a_twty, IntPtr a_intptr, int a_iIndex)
         {
             IntPtr intptr;
 
             // Index by type...
+            //索引的类型……
             switch (a_twty)
             {
                 default:
-                    return ("Get Capability: (unrecognized item type)..." + a_twty);
+                    return ("Get Capability: (unrecognized item type)..." + a_twty);//获取能力:(无法识别的项目类型)..
 
                 case TWTY.INT8:
                     {
@@ -13265,27 +13635,30 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert the value of a string into a capability...
+        /// 将字符串的值转换为功能…
         /// </summary>
-        /// <param name="a_twcapability">All info on the capability</param>
-        /// <param name="a_twty">Data type</param>
-        /// <param name="a_intptr">Point to the data</param>
-        /// <param name="a_iIndex">Index for item in the data</param>
-        /// <param name="a_szValue">CSV value to be used to set the data</param>
-        /// <returns>Empty string or an error string</returns>
+        /// <param name="a_twcapability">All info on the capability 所有关于能力的信息</param>
+        /// <param name="a_twty">Data type 数据类型</param>
+        /// <param name="a_intptr">Point to the data 数据指针</param>
+        /// <param name="a_iIndex">Index for item in the data 数据项的索引</param>
+        /// <param name="a_szValue">CSV value to be used to set the data CSV格式的数据</param>
+        /// <returns>Empty string or an error string 空字符串或错误字符串</returns>
         [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust", Unrestricted = false)]
         public string SetIndexedItem(TW_CAPABILITY a_twcapability, TWTY a_twty, IntPtr a_intptr, int a_iIndex, string a_szValue)
         {
             IntPtr intptr;
 
             // Index by type...
+            //索引的类型……
             switch (a_twty)
             {
                 default:
-                    return ("Set Capability: (unrecognized item type)..." + a_twty);
+                    return ("Set Capability: (unrecognized item type)..." + a_twty);//设置能力:(无法识别的项目类型)…
 
                 case TWTY.INT8:
                     {
                         // We do this to make sure the entire Item value is overwritten...
+                        //我们这样做是为了确保整个项目值被覆盖……
                         if (a_twcapability.ConType == TWON.ONEVALUE)
                         {
                             int i32Value = sbyte.Parse(CvtCapValueFromEnum(a_twcapability.Cap, a_szValue));
@@ -13293,6 +13666,7 @@ namespace TWAINWorkingGroup
                             return ("");
                         }
                         // These items have to be packed on the type sizes...
+                        //这些项必须按类型尺求打包……
                         else
                         {
                             sbyte i8Value = sbyte.Parse(CvtCapValueFromEnum(a_twcapability.Cap, a_szValue));
@@ -13305,6 +13679,7 @@ namespace TWAINWorkingGroup
                 case TWTY.INT16:
                     {
                         // We use i32Value to make sure the entire Item value is overwritten...
+                        //我们使用i32Value来确保整个项目值被覆盖……
                         if (a_twcapability.ConType == TWON.ONEVALUE)
                         {
                             int i32Value = short.Parse(CvtCapValueFromEnum(a_twcapability.Cap, a_szValue));
@@ -13312,6 +13687,7 @@ namespace TWAINWorkingGroup
                             return ("");
                         }
                         // These items have to be packed on the type sizes...
+                        //这些项必须按类型尺求打包……
                         else
                         {
                             short i16Value = short.Parse(CvtCapValueFromEnum(a_twcapability.Cap, a_szValue));
@@ -13324,6 +13700,7 @@ namespace TWAINWorkingGroup
                 case TWTY.INT32:
                     {
                         // Entire value will always be overwritten, so we don't have to get fancy...
+                        //整个值总是会被覆盖，所以我们不必弄得很花哨……
                         int i32Value = int.Parse(CvtCapValueFromEnum(a_twcapability.Cap, a_szValue));
                         intptr = (IntPtr)((ulong)a_intptr + (ulong)(4 * a_iIndex));
                         Marshal.StructureToPtr(i32Value, intptr, true);
@@ -13333,6 +13710,7 @@ namespace TWAINWorkingGroup
                 case TWTY.UINT8:
                     {
                         // We use u32Value to make sure the entire Item value is overwritten...
+                        //我们使用i32Value来确保整个项目值被覆盖……
                         if (a_twcapability.ConType == TWON.ONEVALUE)
                         {
                             uint u32Value = byte.Parse(CvtCapValueFromEnum(a_twcapability.Cap, a_szValue));
@@ -13340,6 +13718,7 @@ namespace TWAINWorkingGroup
                             return ("");
                         }
                         // These items have to be packed on the type sizes...
+                        //这些项必须按类型尺求打包…
                         else
                         {
                             byte u8Value = byte.Parse(CvtCapValueFromEnum(a_twcapability.Cap, a_szValue));
@@ -13353,6 +13732,7 @@ namespace TWAINWorkingGroup
                 case TWTY.UINT16:
                     {
                         // We use u32Value to make sure the entire Item value is overwritten...
+                        //我们使用i32Value来确保整个项目值被覆盖……
                         if (a_twcapability.ConType == TWON.ONEVALUE)
                         {
                             uint u32Value = ushort.Parse(CvtCapValueFromEnum(a_twcapability.Cap, a_szValue));
@@ -13371,6 +13751,7 @@ namespace TWAINWorkingGroup
                 case TWTY.UINT32:
                     {
                         // Entire value will always be overwritten, so we don't have to get fancy...
+                        //整个值总是会被覆盖，所以我们不必弄得很花哨……
                         uint u32Value = uint.Parse(CvtCapValueFromEnum(a_twcapability.Cap, a_szValue));
                         intptr = (IntPtr)((ulong)a_intptr + (ulong)(4 * a_iIndex));
                         Marshal.StructureToPtr(u32Value, intptr, true);
@@ -13380,6 +13761,7 @@ namespace TWAINWorkingGroup
                 case TWTY.FIX32:
                     {
                         // Entire value will always be overwritten, so we don't have to get fancy...
+                        //整个值总是会被覆盖，所以我们不必弄得很花哨……
                         TW_FIX32 twfix32 = default(TW_FIX32);
                         twfix32.Whole = (short)Convert.ToDouble(a_szValue);
                         twfix32.Frac = (ushort)((Convert.ToDouble(a_szValue) - (double)twfix32.Whole) * 65536.0);
@@ -13445,11 +13827,12 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Convert strings into a range...
+        /// 将字符串转换为范围…
         /// </summary>
-        /// <param name="a_twty">Data type</param>
-        /// <param name="a_intptr">Pointer to the data</param>
-        /// <param name="a_asz">List of strings</param>
-        /// <returns>Empty string or an error string</returns>
+        /// <param name="a_twty">Data type 数据类型</param>
+        /// <param name="a_intptr">Pointer to the data 数据指针</param>
+        /// <param name="a_asz">List of strings 字符串列表</param>
+        /// <returns>Empty string or an error string 空字符串或错误字符串</returns>
         [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust", Unrestricted = false)]
         public string SetRangeItem(TWTY a_twty, IntPtr a_intptr, string[] a_asz)
         {
@@ -13460,10 +13843,11 @@ namespace TWAINWorkingGroup
             TW_RANGE_FIX32_MACOSX twrangefix32macosx = default(TW_RANGE_FIX32_MACOSX);
 
             // Index by type...
+            //索引的类型……
             switch (a_twty)
             {
                 default:
-                    return ("Set Capability: (unrecognized item type)..." + a_twty);
+                    return ("Set Capability: (unrecognized item type)..." + a_twty);//设置能力:(无法识别的项目类型)…
 
                 case TWTY.INT8:
                     {
@@ -13720,14 +14104,15 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Our callback delegate for Windows...
+        /// 我们的Windows回调委托…
         /// </summary>
-        /// <param name="origin">Origin of message</param>
-        /// <param name="dest">Message target</param>
-        /// <param name="dg">Data group</param>
-        /// <param name="dat">Data argument type</param>
-        /// <param name="msg">Operation</param>
-        /// <param name="twnull">NULL pointer</param>
-        /// <returns>TWAIN status</returns>
+        /// <param name="origin">Origin of message 源始的消息</param>
+        /// <param name="dest">Message target 消息的目标</param>
+        /// <param name="dg">Data group 数据组</param>
+        /// <param name="dat">Data argument type 数据参数类型</param>
+        /// <param name="msg">Operation操作</param>
+        /// <param name="twnull">NULL pointer空指针</param>
+        /// <returns>TWAIN status TWAIN状态</returns>
         private UInt16 WindowsDsmEntryCallbackProxy
         (
             ref TW_IDENTITY_LEGACY origin,
@@ -13744,14 +14129,15 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Our callback delegate for Linux...
+        /// 我们的Linux回调委托…
         /// </summary>
-        /// <param name="origin">Origin of message</param>
-        /// <param name="dest">Message target</param>
-        /// <param name="dg">Data group</param>
-        /// <param name="dat">Data argument type</param>
-        /// <param name="msg">Operation</param>
-        /// <param name="twnull">NULL pointer</param>
-        /// <returns>TWAIN status</returns>
+        /// <param name="origin">Origin of message 源始的消息</param>
+        /// <param name="dest">Message target 消息的目标</param>
+        /// <param name="dg">Data group 数据组</param>
+        /// <param name="dat">Data argument type 数据参数类型</param>
+        /// <param name="msg">Operation操作</param>
+        /// <param name="twnull">NULL pointer空指针</param>
+        /// <returns>TWAIN status TWAIN状态</returns>
         private UInt16 LinuxDsmEntryCallbackProxy
         (
             ref TW_IDENTITY_LEGACY origin,
@@ -13768,14 +14154,15 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Our callback delegate for Mac OS X...
+        /// 我们的Mac OS X回调委托…
         /// </summary>
-        /// <param name="origin">Origin of message</param>
-        /// <param name="dest">Message target</param>
-        /// <param name="dg">Data group</param>
-        /// <param name="dat">Data argument type</param>
-        /// <param name="msg">Operation</param>
-        /// <param name="twnull">NULL pointer</param>
-        /// <returns>TWAIN status</returns>
+        /// <param name="origin">Origin of message 源始的消息</param>
+        /// <param name="dest">Message target 消息的目标</param>
+        /// <param name="dg">Data group 数据组</param>
+        /// <param name="dat">Data argument type 数据参数类型</param>
+        /// <param name="msg">Operation操作</param>
+        /// <param name="twnull">NULL pointer空指针</param>
+        /// <returns>TWAIN status TWAIN状态</returns>
         private UInt16 MacosxDsmEntryCallbackProxy
         (
             ref TW_IDENTITY_MACOSX origin,
@@ -13793,10 +14180,11 @@ namespace TWAINWorkingGroup
         /// <summary>
         /// Get .NET 'Bitmap' object from memory DIB via stream constructor.
         /// This should work for most DIBs.
+        /// 通过流构造函数从内存DIB中获取。net 'Bitmap'对象。这应该适用于大多数人。
         /// </summary>
-        /// <param name="a_platform">Our operating system</param>
-        /// <param name="a_intptrNative">The pointer to something (presumably a BITMAP or a TIFF image)</param>
-        /// <returns>C# Bitmap of image</returns>
+        /// <param name="a_platform">Our operating system 我们的操作系统</param>
+        /// <param name="a_intptrNative">The pointer to something (presumably a BITMAP or a TIFF image) 指向某个东西的指针(可能是位图或TIFF图像)</param>
+        /// <returns>C# Bitmap of image c#图像的位图</returns>
         private Bitmap NativeToBitmap(Platform a_platform, IntPtr a_intptrNative)
         {
             ushort u16Magic;
@@ -13804,10 +14192,12 @@ namespace TWAINWorkingGroup
 
             // We need the first two bytes to decide if we have a DIB or a TIFF.  Don't
             // forget to lock the silly thing...
+            //我们需要前两个字节来决定是使用DIB还是TIFF。别忘了锁上那个愚蠢的东西……
             intptrNative = DsmMemLock(a_intptrNative);
             u16Magic = (ushort)Marshal.PtrToStructure(intptrNative, typeof(ushort));
 
             // Windows uses a DIB, the first usigned short is 40...
+            //Windows使用DIB，第一个短标是40…
             if (u16Magic == 40)
             {
                 byte[] bBitmap;
@@ -13815,9 +14205,11 @@ namespace TWAINWorkingGroup
                 BITMAPINFOHEADER bitmapinfoheader;
 
                 // Our incoming DIB is a bitmap info header...
+                //我们的DIB是一个位图信息头…
                 bitmapinfoheader = (BITMAPINFOHEADER)Marshal.PtrToStructure(intptrNative, typeof(BITMAPINFOHEADER));
 
                 // Build our file header...
+                //建立我们的文件头…
                 bitmapfileheader = new BITMAPFILEHEADER();
                 bitmapfileheader.bfType = 0x4D42; // "BM"
                 bitmapfileheader.bfSize
@@ -13831,6 +14223,7 @@ namespace TWAINWorkingGroup
                        (bitmapinfoheader.biClrUsed * 4);
 
                 // Copy the file header into our byte array...
+                //复制文件头到我们的字节数组…
                 IntPtr intptr = Marshal.AllocHGlobal(Marshal.SizeOf(bitmapfileheader));
                 Marshal.StructureToPtr(bitmapfileheader, intptr, true);
                 bBitmap = new byte[bitmapfileheader.bfSize];
@@ -13839,15 +14232,19 @@ namespace TWAINWorkingGroup
                 intptr = IntPtr.Zero;
 
                 // Copy the rest of the DIB into our byte array......
+                //将DIB的其余部分复制到我们的字节数组中
                 Marshal.Copy(intptrNative, bBitmap, Marshal.SizeOf(typeof(BITMAPFILEHEADER)), (int)bitmapfileheader.bfSize - Marshal.SizeOf(typeof(BITMAPFILEHEADER)));
 
                 // Now we can turn the in-memory bitmap file into a Bitmap object...
+                //现在我们可以把内存中的位图文件转换成一个位图对象…
                 MemoryStream memorystream = new MemoryStream(bBitmap);
 
                 // Unfortunately the stream has to be kept with the bitmap...
+                //不幸的是，流必须保持与位图…
                 Bitmap bitmapStream = new Bitmap(memorystream);
 
                 // So we make a copy (ick)...
+                //所以我们复制了一份…
                 Bitmap bitmap;
                 switch (bitmapinfoheader.biBitCount)
                 {
@@ -13864,9 +14261,11 @@ namespace TWAINWorkingGroup
                 }
 
                 // Fix the resolution...
+                //修复解决方案
                 bitmap.SetResolution((int)(bitmap.HorizontalResolution + 0.5), (int)(bitmap.VerticalResolution + 0.5));
 
                 // Cleanup...
+                //清除...
                 //bitmapStream.Dispose();
                 //memorystream.Close();
                 bitmapStream = null;
@@ -13874,11 +14273,13 @@ namespace TWAINWorkingGroup
                 bBitmap = null;
 
                 // Return our bitmap...
+                //返回我们的位图…
                 DsmMemUnlock(a_intptrNative);
                 return (bitmap);
             }
 
             // Linux and Mac OS X use TIFF.  We'll handle a simple Intel TIFF ("II")...
+            //Linux和Mac OS X使用TIFF格式。我们将处理一个简单的英特尔TIFF(“II”)…
             else if (u16Magic == 0x4949)
             {
                 int iTiffSize;
@@ -13891,12 +14292,14 @@ namespace TWAINWorkingGroup
                 TIFFTAG tifftag;
 
                 // Init stuff...
+                //初始化东西...
                 tiffheader = new TIFFHEADER();
                 tifftag = new TIFFTAG();
                 u64TiffHeaderSize = (ulong)Marshal.SizeOf(tiffheader);
                 u64TiffTagSize = (ulong)Marshal.SizeOf(tifftag);
 
                 // Find the size of the image so we can turn it into a memory stream...
+                //找到图像的大小，这样我们就可以把它转换成一个内存流…
                 iTiffSize = 0;
                 tiffheader = (TIFFHEADER)Marshal.PtrToStructure(intptrNative, typeof(TIFFHEADER));
                 for (u64 = 0; u64 < 999; u64++)
@@ -13905,12 +14308,14 @@ namespace TWAINWorkingGroup
                     tifftag = (TIFFTAG)Marshal.PtrToStructure((IntPtr)u64Pointer, typeof(TIFFTAG));
 
                     // StripOffsets...
+                    //条形偏移设置...
                     if (tifftag.u16Tag == 273)
                     {
                         iTiffSize += (int)tifftag.u32Value;
                     }
 
                     // StripByteCounts...
+                    //条字节计数……
                     if (tifftag.u16Tag == 279)
                     {
                         iTiffSize += (int)tifftag.u32Value;
@@ -13918,6 +14323,7 @@ namespace TWAINWorkingGroup
                 }
 
                 // No joy...
+                //没有喜悦……
                 if (iTiffSize == 0)
                 {
                     DsmMemUnlock(a_intptrNative);
@@ -13925,29 +14331,36 @@ namespace TWAINWorkingGroup
                 }
 
                 // Copy the data to our byte array...
+                //复制数据到我们的字节数组…
                 abTiff = new byte[iTiffSize];
                 Marshal.Copy(intptrNative, abTiff, 0, iTiffSize);
 
                 // Move the image into a memory stream...
+                //将图像移动到内存流中……
                 MemoryStream memorystream = new MemoryStream(abTiff);
 
                 // Turn the memory stream into an in-memory TIFF image...
+                //将内存流转换为内存中的TIFF图像…
                 Image imageTiff = Image.FromStream(memorystream);
 
                 // Convert the in-memory tiff to a Bitmap object...
+                //将内存中的tiff转换为位图对象…
                 Bitmap bitmap = new Bitmap(imageTiff);
 
                 // Cleanup...
+                //清理...
                 abTiff = null;
                 memorystream = null;
                 imageTiff = null;
 
                 // Return our bitmap...
+                //返回我们的位图…
                 DsmMemUnlock(a_intptrNative);
                 return (bitmap);
             }
 
             // Uh-oh...
+            //啊哦……
             DsmMemUnlock(a_intptrNative);
             return (null);
         }
@@ -14261,6 +14674,7 @@ namespace TWAINWorkingGroup
         ///////////////////////////////////////////////////////////////////////////////
         // Private Structures, things we need for the thread, and to support stuff
         // like DAT_IMAGENATIVEXFER...
+        //私有结构，线程需要的东西，以及支持dat_imagenatifer之类的东西…
         ///////////////////////////////////////////////////////////////////////////////
         #region Private Structures...
 
