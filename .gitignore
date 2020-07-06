@@ -14,3 +14,8 @@
 /twaincs/source/twaincstst/source/obj
 /.vs
 /twaincs/source/twaincscert/source/obj
+/twaincs/source/bin/AnyCPU/Debug
+/twaincs/source/twaincscert/source/bin/AnyCPU/Debug
+/twaincs/source/twaincsscan/source/bin/AnyCPU/Debug
+/twaincs/source/twaincstool/source/bin/AnyCPU/Debug
+/twaincs/source/twaincstst/source/bin/AnyCPU/Debug

@@ -98,10 +98,6 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Drawing" />
-    <Reference Include="TWAIN">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\bin\$(Platform)\$(Configuration)\TWAIN.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="TWAINCSTool.cs" />
