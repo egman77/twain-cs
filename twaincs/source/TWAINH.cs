@@ -1,25 +1,29 @@
 ﻿///////////////////////////////////////////////////////////////////////////////////////
 //
 //  TwainWorkingGroup.TWAIN
+//  Twain工作组.TWAIN
 //
 //  These are the definitions for TWAIN.  They're essentially the C/C++
 //  TWAIN.H file contents translated to C#, with modifications that
 //  recognize the differences between Windows, Linux and Mac OS X.
 //
+//  以下是TWAIN的定义. 它位本质上是转换成C#的C/C++ TWAIN.H  文件内容,并进行了识别Windows\Linux\Mac OS X之间的差异
+//
 ///////////////////////////////////////////////////////////////////////////////////////
 //  Author          Date            TWAIN       Comment
-//  M.McLaughlin    13-Mar-2019     2.4.0.3     Add language code page support for strings
-//  M.McLaughlin    13-Nov-2015     2.4.0.0     Updated to latest spec
-//  M.McLaughlin    13-Sep-2015     2.3.1.2     DsmMem bug fixes
-//  M.McLaughlin    26-Aug-2015     2.3.1.1     Log fix and sync with TWAIN Direct
-//  M.McLaughlin    13-Mar-2015     2.3.1.0     Numerous fixes
-//  M.McLaughlin    13-Oct-2014     2.3.0.4     Added logging
-//  M.McLaughlin    24-Jun-2014     2.3.0.3     Stability fixes
-//  M.McLaughlin    21-May-2014     2.3.0.2     64-Bit Linux
-//  M.McLaughlin    27-Feb-2014     2.3.0.1     AnyCPU support
-//  M.McLaughlin    21-Oct-2013     2.3.0.0     Initial Release
+//  M.McLaughlin    13-Mar-2019     2.4.0.3     Add language code page support for strings   添加字符串语言编码集支持
+//  M.McLaughlin    13-Nov-2015     2.4.0.0     Updated to latest spec  更新到最新
+//  M.McLaughlin    13-Sep-2015     2.3.1.2     DsmMem bug fixes    DsmMem  错误修复 
+//  M.McLaughlin    26-Aug-2015     2.3.1.1     Log fix and sync with TWAIN Direct  日志修复和 同步TWAIN直接操作
+//  M.McLaughlin    13-Mar-2015     2.3.1.0     Numerous fixes   许多修复
+//  M.McLaughlin    13-Oct-2014     2.3.0.4     Added logging    添加日志
+//  M.McLaughlin    24-Jun-2014     2.3.0.3     Stability fixes   稳定性修复
+//  M.McLaughlin    21-May-2014     2.3.0.2     64-Bit Linux     64位 Linux
+//  M.McLaughlin    27-Feb-2014     2.3.0.1     AnyCPU support  任何CPU支持
+//  M.McLaughlin    21-Oct-2013     2.3.0.0     Initial Release  初始化发行版
 ///////////////////////////////////////////////////////////////////////////////////////
 //  Copyright (C) 2013-2020 Kodak Alaris Inc.
+//  版权  Kodak Alaris 公司所有.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a
 //  copy of this software and associated documentation files (the "Software"),
@@ -28,8 +32,14 @@
 //  and/or sell copies of the Software, and to permit persons to whom the
 //  Software is furnished to do so, subject to the following conditions:
 //
+//  特此免费允许任何获得本软件及其相关文档文件(“软件”)副本的人不受限制地使用本软件，
+//  包括但不限于使用、复制、修改、合并、出版、分发、再授权、
+//    及/或出售“软件”的复制件，以及准许获提供“软件”的人士在符合下列条件的情况下，作出“软件”的转让:
+//
 //  The above copyright notice and this permission notice shall be included in
 //  all copies or substantial portions of the Software.
+// 
+//  上述版权声明和本许可声明应包含在本软件的所有副本或实质性部分中。
 //
 //  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 //  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -38,6 +48,10 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 //  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 //  DEALINGS IN THE SOFTWARE.
+//
+//  本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于适销性、适用于特定目的和不侵权的保证。
+//  在任何情况下作者或版权所有人对任何索赔、损害或其他责任负责，无论是在合同、侵权或其他行为中，
+//  由“软件”或“软件”的使用或其他交易引起的或与之有关的。
 ///////////////////////////////////////////////////////////////////////////////////////
 
 using System;
@@ -52,25 +66,34 @@ namespace TWAINWorkingGroup
     /// This file contains content gleaned from version 2.4 of the C/C++ TWAIN.H
     /// header file released by the TWAIN Working Group.  It's organized like that
     /// file to make it easier to maintain.
+    /// 这个文件包含了TWAIN工作组发布的C/C++TWAIN.H 头文件 2.4版本中收集到的内容. 
+    /// 它像该文件一样进行了组织,以便更容易维护.
     /// 
     /// Please do not add any code to this module, save for the minimum needed to
     /// maintain a particular definition (such as TW_STR32)...
+    /// 请不要向此模块添加任何代码，除了维护特定定义(如TW_STR32)所需的最小代码……
+    /// 
     /// </summary>
     public partial class TWAIN
     {
         ///////////////////////////////////////////////////////////////////////////////
         // TWAIN Version...
+        //
         ///////////////////////////////////////////////////////////////////////////////
         #region Protocol Version...
+        /// <summary>
+        ///  TWAIN 版本
+        /// </summary>
         public enum TWON_PROTOCOL
         {
             MAJOR = 2,
-            MINOR = 4 // Changed for Version 2.4
+            MINOR = 4 // Changed for Version 2.4  更新到2.4V
         };
         #endregion
 
         ///////////////////////////////////////////////////////////////////////////////
         // Type Definitions...
+        // 类型定义
         ///////////////////////////////////////////////////////////////////////////////
         #region Type Definitions...
 
@@ -94,9 +117,13 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Our supported platforms...
+        /// 支持的平台
         /// </summary>
         public enum Platform
         {
+            /// <summary>
+            /// 未知
+            /// </summary>
             UNKNOWN,
             WINDOWS,
             LINUX,
@@ -105,17 +132,31 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Our supported processors...
+        /// 支持的处理器
         /// </summary>
         public enum Processor
         {
+            /// <summary>
+            /// 未知
+            /// </summary>
             UNKNOWN,
+            /// <summary>
+            /// 32位
+            /// </summary>
             X86,
+            /// <summary>
+            /// 32或64位
+            /// </summary>
             X86_64,
+            /// <summary>
+            /// 精简指令集
+            /// </summary>
             MIPS64EL
         };
 
         /// <summary>
         /// Used for strings that go up to 32-bytes...
+        /// 用于32位的字符串
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Ansi)]
         public struct TW_STR32
@@ -123,6 +164,7 @@ namespace TWAINWorkingGroup
             /// <summary>
             /// We're stuck with this, because marshalling with packed alignment
             /// can't handle arrays...
+            /// 我们被困在这个问题上了，因为采用打包对齐的编组不能处理数组……
             /// </summary>
             private byte byItem000; private byte byItem001; private byte byItem002; private byte byItem003;
             private byte byItem004; private byte byItem005; private byte byItem006; private byte byItem007;
@@ -136,6 +178,7 @@ namespace TWAINWorkingGroup
 
             /// <summary>
             /// The normal get...
+            /// 一般获取
             /// </summary>
             /// <returns></returns>
             public string Get()
@@ -146,6 +189,7 @@ namespace TWAINWorkingGroup
             /// <summary>
             /// Use this on Mac OS X if you have a call that uses a string
             /// that doesn't include the prefix byte...
+            /// 在Mac OS X上使用这个，如果你有一个调用，它使用的字符串不包括前缀字节…
             /// </summary>
             /// <returns></returns>
             public string GetNoPrefix()
@@ -155,11 +199,14 @@ namespace TWAINWorkingGroup
 
             /// <summary>
             /// Get our value...
+            /// 获取值
             /// </summary>
+            /// <param name=a_blMayHavePrefix>有前缀</param>
             /// <returns></returns>
             private string GetValue(bool a_blMayHavePrefix)
             {
                 // convert what we have into a byte array
+                //将我们拥有的转换为字节数组
                 byte[] abyItem = new byte[34];
                 abyItem[0]  = byItem000; abyItem[1]  = byItem001; abyItem[2]  = byItem002; abyItem[3]  = byItem003;
                 abyItem[4]  = byItem004; abyItem[5]  = byItem005; abyItem[6]  = byItem006; abyItem[7]  = byItem007;
@@ -172,6 +219,7 @@ namespace TWAINWorkingGroup
                 abyItem[32] = byItem032; abyItem[33] = byItem033;
 
                 // Zero anything after the NUL...
+                //NUL之后什么都没有…
                 bool blNul = false;
                 for (int ii = 0; ii < abyItem.Length; ii++)
                 {
@@ -186,39 +234,47 @@ namespace TWAINWorkingGroup
                 }
 
                 // change encoding of byte array, then convert the bytes array to a string
+                //更改字节数组的编码，然后将字节数组转换为字符串
                 string sz = Encoding.Unicode.GetString(Encoding.Convert(Language.GetEncoding(), Encoding.Unicode, abyItem));
 
                 // If the first character is a NUL, then return the empty string...
+                //如果第一个字符是NUL，那么返回空字符串…
                 while ((sz.Length > 0) && (sz[0] == '\0'))
                 {
                     sz = sz.Remove(0, 1);
                 }
 
                 // We have an emptry string...
+                //我们有一个空字符串…
                 if (sz.Length == 0)
                 {
                     return ("");
                 }
 
                 // If we're running on a Mac, take off the prefix 'byte'...
+                //如果我们在Mac上运行，去掉前缀'byte'…
                 if (a_blMayHavePrefix && (TWAIN.GetPlatform() == Platform.MACOSX))
                 {
                     sz = sz.Remove(0, 1);
                 }
 
                 // If we detect a NUL, then split around it...
+                //如果我们探测到NUL，然后围绕它剪裁,取前面…
                 if (sz.IndexOf('\0') >= 0)
                 {
                     sz = sz.Split(new char[] { '\0' })[0];
                 }
 
                 // All done...
+                //全部完成
                 return (sz);
             }
 
             /// <summary>
             /// The normal set...
+            /// 普通设置
             /// </summary>
+            /// <param name="a_sz">字符串</param>
             /// <returns></returns>
             public void Set(string a_sz)
             {
@@ -228,7 +284,9 @@ namespace TWAINWorkingGroup
             /// <summary>
             /// Use this on Mac OS X if you have a call that uses a string
             /// that doesn't include the prefix byte...
+            /// 在Mac OS X上使用这个，如果你有一个调用，它使用的字符串不包括前缀字节…
             /// </summary>
+            /// <param name="a_sz">字符串</param>
             /// <returns></returns>
             public void SetNoPrefix(string a_sz)
             {
@@ -237,11 +295,13 @@ namespace TWAINWorkingGroup
 
             /// <summary>
             /// Set our value...
+            /// 设置值
             /// </summary>
             /// <param name="a_sz"></param>
             private void SetValue(string a_sz, bool a_blMayHavePrefix)
             {
                 // If we're running on a Mac, tack on the prefix 'byte'...
+                //如果我们在Mac上运行，再加上“byte”前缀……
                 if (a_sz == null)
                 {
                     a_sz = "";
@@ -252,6 +312,7 @@ namespace TWAINWorkingGroup
                 }
 
                 // Make sure that we're NUL padded...
+                //确保我们用NUL填充…
                 string sz = a_sz +
                     "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" +
                     "\0\0";
@@ -261,9 +322,11 @@ namespace TWAINWorkingGroup
                 }
 
                 // convert string to byte array, then change the encoding of the byte array
+                //将字符串转换为字节数组，然后更改字节数组的编码
                 byte[] abyItem = Encoding.Convert(Encoding.Unicode, Language.GetEncoding(), Encoding.Unicode.GetBytes(sz));
 
                 // convert byte array to bytes
+                //将字节数组转换为字节
                 if (abyItem.Length > 0)
                 {
                     byItem000 = abyItem[0];  byItem001 = abyItem[1];  byItem002 = abyItem[2];  byItem003 = abyItem[3];
@@ -281,6 +344,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Used for strings that go up to 64-bytes...
+        /// 用于64字节的字符串…
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Ansi)]
         public struct TW_STR64
@@ -463,6 +527,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Used for strings that go up to 128-bytes...
+        /// 用于最多128字节的字符串…
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Ansi)]
         public struct TW_STR128
@@ -695,6 +760,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Used for strings that go up to 256-bytes...
+        /// 用于最多256字节的字符串…
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Ansi)]
         public struct TW_STR255
@@ -1026,49 +1092,96 @@ namespace TWAINWorkingGroup
 
         ///////////////////////////////////////////////////////////////////////////////
         // Structure Definitions...
+        // 结构定义
         ///////////////////////////////////////////////////////////////////////////////
         #region Structure Definitions..
 
         /// <summary>
         /// Fixed point structure type.
+        /// 定点结构类型
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_FIX32
         {
+            /// <summary>
+            /// 整数部份?
+            /// </summary>
             public short Whole;
+            /// <summary>
+            /// 小数部份?
+            /// </summary>
             public ushort Frac;
         }
 
         /// <summary>
         /// Defines a frame rectangle in ICAP_UNITS coordinates.
+        /// 以ICAP_UNITS坐标定义帧矩形。
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_FRAME
         {
+            /// <summary>
+            /// 左
+            /// </summary>
             public TW_FIX32 Left;
+            /// <summary>
+            /// 上
+            /// </summary>
             public TW_FIX32 Top;
+            /// <summary>
+            /// 右
+            /// </summary>
             public TW_FIX32 Right;
+            /// <summary>
+            /// 下
+            /// </summary>
             public TW_FIX32 Bottom;
         }
 
         /// <summary>
         /// Defines the parameters used for channel-specific transformation.
+        /// 定义用于特定通道转换的参数。
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_DECODEFUNCTION
         {
+            /// <summary>
+            /// 开始入
+            /// </summary>
             public TW_FIX32 StartIn;
+            /// <summary>
+            /// 中断入
+            /// </summary>
             public TW_FIX32 BreakIn;
+            /// <summary>
+            /// 结束入
+            /// </summary>
             public TW_FIX32 EndIn;
+            /// <summary>
+            /// 开始出
+            /// </summary>
             public TW_FIX32 StartOut;
+            /// <summary>
+            /// 中断出
+            /// </summary>
             public TW_FIX32 BreakOut;
+            /// <summary>
+            /// 结束出
+            /// </summary>
             public TW_FIX32 EndOut;
+            /// <summary>
+            /// 伽码曲线
+            /// </summary>
             public TW_FIX32 Gamma;
+            /// <summary>
+            /// 简单统计
+            /// </summary>
             public TW_FIX32 SampleCount;
         }
 
         /// <summary>
         /// Stores a Fixed point number in two parts, a whole and a fractional part.
+        /// 将定点数存储为两部分，整数部分和小数部分。
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_TRANSFORMSTAGE
@@ -1091,10 +1204,14 @@ namespace TWAINWorkingGroup
         /// Stores a list of values for a capability, the ItemList is commented
         /// out so that the caller can collect information about it with a
         /// marshalling call...
+        /// 存储一个功能的值列表，ItemList被注释掉，以便调用者可以通过编组调用收集关于它的信息…
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_ARRAY
         {
+            /// <summary>
+            /// 项类型
+            /// </summary>
             public TWTY ItemType;
             public uint NumItems;
             //public byte[] ItemList;
@@ -1109,6 +1226,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Information about audio data.
+        /// 音频数据信息
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_AUDIOINFO
@@ -1119,6 +1237,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Used to register callbacks.
+        /// 用它注册回调
         /// </summary>
         [SuppressMessage("Microsoft.Design", "CA1049:TypesThatOwnNativeResourcesShouldBeDisposable")]
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
@@ -1132,6 +1251,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Used to register callbacks.
+        /// 用它注册回调
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_CALLBACK2
@@ -1145,6 +1265,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Used by application to get/set capability from/in a data source.
+        /// 应用程序用于从数据源中获取/设置功能。
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2, CharSet = CharSet.Ansi)]
         public struct TW_CAPABILITY
@@ -1157,6 +1278,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Defines a CIE XYZ space tri-stimulus value.
+        /// 定义CIE XYZ空间三激励值。
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_CIEPOINT
@@ -1168,25 +1290,54 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Defines the mapping from an RGB color space device into CIE 1931 (XYZ) color space.
+        /// 定义从RGB颜色空间设备到CIE 1931 (XYZ)颜色空间的映射。
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_CIECOLOR
         {
+            /// <summary>
+            /// 颜色空间
+            /// </summary>
             public ushort ColorSpace;
+            /// <summary>
+            /// 低字节顺序
+            /// </summary>
             public short LowEndian;
+            /// <summary>
+            /// 设备依赖
+            /// </summary>
             public short DeviceDependent;
+            /// <summary>
+            /// 版本号
+            /// </summary>
             public int VersionNumber;
             public TW_TRANSFORMSTAGE StageABC;
             public TW_TRANSFORMSTAGE StageLNM;
+            /// <summary>
+            /// 白点
+            /// </summary>
             public TW_CIEPOINT WhitePoint;
+            /// <summary>
+            /// 黑点
+            /// </summary>
             public TW_CIEPOINT BlackPoint;
+            /// <summary>
+            /// 白纸
+            /// </summary>
             public TW_CIEPOINT WhitePaper;
+            /// <summary>
+            /// 黑墨水
+            /// </summary>
             public TW_CIEPOINT BlackInk;
+            /// <summary>
+            /// 样本
+            /// </summary>
             public TW_FIX32 Samples;
         }
 
         /// <summary>
         /// Allows for a data source and application to pass custom data to each other.
+        /// 允许数据源和应用程序相互传递自定义数据。
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_CUSTOMDSDATA
@@ -1198,53 +1349,123 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Provides information about the Event that was raised by the Source.
+        /// 提供有关由源引发的事件的信息。
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_DEVICEEVENT
         {
+            /// <summary>
+            /// 事件
+            /// </summary>
             public uint Event;
+            /// <summary>
+            /// 设备名
+            /// </summary>
             public TW_STR255 DeviceName;
+            /// <summary>
+            /// 电量(分钟)
+            /// </summary>
             public uint BatteryMinutes;
+            /// <summary>
+            /// 电量(百分比)
+            /// </summary>
             public short BatteryPercentage;
+            /// <summary>
+            /// 电源供电
+            /// </summary>
             public int PowerSupply;
+            /// <summary>
+            /// X分辨率
+            /// </summary>
             public TW_FIX32 XResolution;
+            /// <summary>
+            /// Y分辨率
+            /// </summary>
             public TW_FIX32 YResolution;
+            /// <summary>
+            /// 使用刷新?
+            /// </summary>
             public uint FlashUsed2;
+            /// <summary>
+            /// 自动捕获
+            /// </summary>
             public uint AutomaticCapture;
+            /// <summary>
+            /// 第一次捕获前时间
+            /// </summary>
             public uint TimeBeforeFirstCapture;
+            /// <summary>
+            /// 捕获之间的时间
+            /// </summary>
             public uint TimeBetweenCaptures;
         }
 
         /// <summary>
         /// This structure holds the tri-stimulus color palette information for TW_PALETTE8 structures.
+        /// 这个结构保存了TW_PALETTE8结构的三激励色板信息。
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_ELEMENT8
         {
+            /// <summary>
+            /// 索引?
+            /// </summary>
             public byte Index;
+            /// <summary>
+            /// 通道1
+            /// </summary>
             public byte Channel1;
+            /// <summary>
+            /// 通道2
+            /// </summary>
             public byte Channel2;
+            /// <summary>
+            /// 通道3
+            /// </summary>
             public byte Channel3;
         }
 
         /// <summary>
         /// DAT_ENTRYPOINT. returns essential entry points.
+        /// 返回基本入口点。
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_ENTRYPOINT
         {
+            /// <summary>
+            /// 尺寸
+            /// </summary>
             public UInt32 Size;
+            /// <summary>
+            /// DSM入口
+            /// </summary>
             [SuppressMessage("Microsoft.Security", "CA2111:PointersShouldNotBeVisible")]
             public IntPtr DSM_Entry;
+            /// <summary>
+            /// DSM 已分配内存
+            /// </summary>
             [SuppressMessage("Microsoft.Security", "CA2111:PointersShouldNotBeVisible")]
             public IntPtr DSM_MemAllocate;
+            /// <summary>
+            /// DSM 未使用内存
+            /// </summary>
             [SuppressMessage("Microsoft.Security", "CA2111:PointersShouldNotBeVisible")]
             public IntPtr DSM_MemFree;
+            /// <summary>
+            /// DSM 被锁定内存
+            /// </summary>
             [SuppressMessage("Microsoft.Security", "CA2111:PointersShouldNotBeVisible")]
             public IntPtr DSM_MemLock;
+            /// <summary>
+            /// DSM 被解锁内存
+            /// </summary>
             [SuppressMessage("Microsoft.Security", "CA2111:PointersShouldNotBeVisible")]
             public IntPtr DSM_MemUnlock;
         }
+
+        /// <summary>
+        /// Linux64位下的DSM入口结构
+        /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_ENTRYPOINT_LINUX64
         {
@@ -1260,6 +1481,9 @@ namespace TWAINWorkingGroup
             [SuppressMessage("Microsoft.Security", "CA2111:PointersShouldNotBeVisible")]
             public IntPtr DSM_MemUnlock;
         }
+        /// <summary>
+        /// 返回基本入口点委托
+        /// </summary>
         public struct TW_ENTRYPOINT_DELEGATES
         {
             public UInt32 Size;
@@ -1279,13 +1503,26 @@ namespace TWAINWorkingGroup
         /// Stores a group of enumerated values for a capability, the ItemList is
         /// commented out so that the caller can collect information about it with
         /// a marshalling call...
+        /// 存储一组功能的枚举值，ItemList被注释掉，以便调用者可以通过编组调用收集关于它的信息……
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_ENUMERATION
         {
+            /// <summary>
+            /// 项类型
+            /// </summary>
             public TWTY ItemType;
+            /// <summary>
+            ///数项列表?
+            /// </summary>
             public uint NumItems;
+            /// <summary>
+            /// 当前索引
+            /// </summary>
             public uint CurrentIndex;
+            /// <summary>
+            /// 默认索引
+            /// </summary>
             public uint DefaultIndex;
             //public byte[] ItemList;
         }
@@ -1310,6 +1547,7 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// Used to pass application events/messages from the application to the Source.
+        /// 用于将应用程序事件/消息从应用程序传递到源程序。
         /// </summary>
         [SuppressMessage("Microsoft.Design", "CA1049:TypesThatOwnNativeResourcesShouldBeDisposable")]
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
@@ -1322,30 +1560,71 @@ namespace TWAINWorkingGroup
 
         /// <summary>
         /// DAT_FILTER...
+        /// DAT 过滤器 描述
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_FILTER_DESCRIPTOR
         {
+            /// <summary>
+            /// 尺寸
+            /// </summary>
             public UInt32 Size;
+            /// <summary>
+            /// 色调开始
+            /// </summary>
             public UInt32 HueStart;
+            /// <summary>
+            /// 色调结束
+            /// </summary>
             public UInt32 HueEnd;
+            /// <summary>
+            /// 饱和度开始
+            /// </summary>
             public UInt32 SaturationStart;
+            /// <summary>
+            /// 饱和度结束
+            /// </summary>
             public UInt32 SaturationEnd;
+            /// <summary>
+            /// 值开始
+            /// </summary>
             public UInt32 ValueStart;
+            /// <summary>
+            /// 值结束
+            /// </summary>
             public UInt32 ValueEnd;
+            /// <summary>
+            /// 更换
+            /// </summary>
             public UInt32 Replacement;
         }
 
         /// <summary>
         /// DAT_FILTER...
+        /// DAT 过滤器
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 2)]
         public struct TW_FILTER
         {
+            /// <summary>
+            /// 尺寸
+            /// </summary>
             public UInt32 Size;
+            /// <summary>
+            /// 描述数量
+            /// </summary>
             public UInt32 DescriptorCount;
+            /// <summary>
+            /// 最大描述数量
+            /// </summary>
             public UInt32 MaxDescriptorCount;
+            /// <summary>
+            /// 条件
+            /// </summary>
             public UInt32 Condition;
+            /// <summary>
+            /// 描述者
+            /// </summary>
             [SuppressMessage("Microsoft.Security", "CA2111:PointersShouldNotBeVisible")]
             public IntPtr hDescriptors;
         }
