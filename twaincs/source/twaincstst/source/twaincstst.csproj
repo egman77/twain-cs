@@ -179,4 +179,7 @@
     <PostBuildEvent>
     </PostBuildEvent>
   </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>xcopy /y  $(SolutionDir)..\packages\*.* $(TargetDir)\*.*</PreBuildEvent>
+  </PropertyGroup>
 </Project>
